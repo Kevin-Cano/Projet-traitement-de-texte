@@ -1,0 +1,528 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ personnage.prenom is defined and personnage.prenom ? personnage.prenom ~ ' ' ~ personnage.nom : personnage.nom }} - Fiche personnage{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_personnage_index', {livreId: livre.id}) }}">Personnages</a></li>
+                <li class="breadcrumb-item active">{{ personnage.nom }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-person-badge me-2 text-success"></i>
+            Fiche de {{ personnage.prenom is defined and personnage.prenom ? personnage.prenom ~ ' ' ~ personnage.nom : personnage.nom }}
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_personnage_edit', {id: personnage.id}) }}" class="btn btn-primary">
+                <i class="bi bi-pencil me-2"></i>Modifier
+            </a>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour aux personnages
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonne de gauche: Informations générales -->
+    <div class="col-lg-4">
+        <!-- Carte principale -->
+        <div class="card character-main-card mb-4">
+            <div class="card-body text-center">
+                <!-- Avatar -->
+                <div class="character-avatar-xl mx-auto mb-4">
+                    {% if personnage.photo is defined and personnage.photo %}
+                        <!-- Photo du personnage -->
+                        <img class="character-photo rounded-circle" 
+                             style="width: 150px; height: 150px; object-fit: cover; border: 4px solid rgba(255,255,255,0.3); box-shadow: 0 8px 25px rgba(0,0,0,0.2);" 
+                             src="/{{ personnage.photo }}" alt="Photo de {{ personnage.nom }}">
+                    {% else %}
+                        <!-- Avatar par défaut avec initiales -->
+                        <div class="avatar-placeholder bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 150px; height: 150px; font-size: 4rem; font-weight: bold;">
+                            {{ personnage.prenom is defined and personnage.prenom ? 
+                               personnage.prenom|slice(0, 1)|upper : 
+                               personnage.nom|slice(0, 1)|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Nom et titre -->
+                <h3 class="text-success mb-2">
+                    {% if personnage.prenom is defined and personnage.prenom %}
+                        {{ personnage.prenom }} {{ personnage.nom|upper }}
+                    {% else %}
+                        {{ personnage.nom|upper }}
+                    {% endif %}
+                </h3>
+
+                <!-- Badges d'informations -->
+                <div class="character-badges mb-3">
+                    {% if personnage.age is defined and personnage.age > 0 %}
+                        <span class="badge bg-secondary me-1">{{ personnage.age }} ans</span>
+                    {% endif %}
+                    {% if personnage.genre is defined and personnage.genre != 'Non défini' %}
+                        <span class="badge bg-info me-1">{{ personnage.genre }}</span>
+                    {% endif %}
+                    {% if personnage.role is defined and personnage.role %}
+                        <span class="badge bg-warning">{{ personnage.role }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                {% if personnage.description is defined and personnage.description %}
+                    <div class="character-description">
+                        <p class="text-muted">{{ personnage.description }}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Résumé des compétences principales -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-star-fill me-2"></i>
+                    Compétences principales
+                </h6>
+            </div>
+            <div class="card-body">
+                {% set topSkills = [
+                    {name: 'Force', value: personnage.force ?? 3},
+                    {name: 'Intelligence', value: personnage.intelligence ?? 3},
+                    {name: 'Charisme', value: personnage.charisme ?? 3},
+                    {name: 'Combat', value: personnage.combat ?? 3}
+                ] %}
+                
+                {% for skill in topSkills %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small">{{ skill.name }}</span>
+                        <div class="skill-dots-small">
+                            {% for i in 1..5 %}
+                                <span class="skill-dot-small {{ skill.value >= i ? 'filled' : '' }}"></span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne de droite: Caractéristiques détaillées -->
+    <div class="col-lg-8">
+        <!-- Compétences physiques -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightning-charge me-2"></i>
+                    Compétences physiques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Force', personnage.force ?? 3) }}
+                        {{ _self.displaySkill('Dextérité', personnage.dexterite ?? 3) }}
+                        {{ _self.displaySkill('Santé', personnage.sante ?? 3) }}
+                        {{ _self.displaySkill('Énergie', personnage.energie ?? 3) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Beauté', personnage.beaute ?? 3) }}
+                        {{ _self.displaySkill('Style', personnage.style ?? 3) }}
+                        {{ _self.displaySkill('Combat', personnage.combat ?? 3) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétences intellectuelles -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Compétences intellectuelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Intelligence', personnage.intelligence ?? 3) }}
+                        {{ _self.displaySkill('Persuasion', personnage.persuasion ?? 3) }}
+                        {{ _self.displaySkill('Communication', personnage.communication ?? 3) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Créativité', personnage.creative ?? 3) }}
+                        {{ _self.displaySkill('Analyse', personnage.analyse ?? 3) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétences personnelles -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-gear me-2"></i>
+                    Compétences personnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Discrétion', personnage.discretion ?? 3) }}
+                        {{ _self.displaySkill('Débrouillardise', personnage.debrouillardise ?? 3) }}
+                        {{ _self.displaySkill('Séduction', personnage.seduction ?? 3) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Survie', personnage.survie ?? 3) }}
+                        {{ _self.displaySkill('Intuition', personnage.intuition ?? 3) }}
+                        {{ _self.displaySkill('Médiation', personnage.mediation ?? 3) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Traits de personnalité -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-emoji-smile me-2"></i>
+                    Traits de personnalité
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displayTrait('Gentil', 'Méchant', personnage.gentillesse ?? 0) }}
+                        {{ _self.displayTrait('Courageux', 'Lâche', personnage.courage ?? 0) }}
+                        {{ _self.displayTrait('Pacifiste', 'Violent', personnage.pacifisme ?? 0) }}
+                        {{ _self.displayTrait('Réfléchi', 'Impulsif', personnage.reflexion ?? 0) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displayTrait('Aimable', 'Désagréable', personnage.amabilite ?? 0) }}
+                        {{ _self.displayTrait('Idéaliste', 'Pragmatique', personnage.idealisme ?? 0) }}
+                        {{ _self.displayTrait('Introverti', 'Extraverti', personnage.sociabilite ?? 0) }}
+                        {{ _self.displayTrait('Calme', 'Turbulent', personnage.temperament ?? 0) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétences interpersonnelles -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Compétences interpersonnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Charisme', personnage.charisme ?? 3) }}
+                        {{ _self.displaySkill('Empathie', personnage.empathie ?? 3) }}
+                        {{ _self.displaySkill('Générosité', personnage.generosite ?? 3) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Libido', personnage.libido ?? 3) }}
+                        {{ _self.displaySkill('Flirteur', personnage.flirteur ?? 3) }}
+                        {{ _self.displaySkill('Humour', personnage.humour ?? 3) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priorités interpersonnelles -->
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-heart me-2"></i>
+                    Priorités interpersonnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displayTrait('Optimiste', 'Pessimiste', personnage.optimisme ?? 0) }}
+                        {{ _self.displayTrait('Altruiste', 'Égoïste', personnage.altruisme ?? 0) }}
+                        {{ _self.displayTrait('Honnête', 'Menteur', personnage.honnete ?? 0) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displayTrait('Leader', 'Suiveur', personnage.leadership ?? 0) }}
+                        {{ _self.displayTrait('Poli', 'Grossier', personnage.politesse ?? 0) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Priorités de vie -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-star me-2"></i>
+                    Priorités de vie
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Famille', personnage.famille ?? 3) }}
+                        {{ _self.displaySkill('Amis', personnage.amis ?? 3) }}
+                        {{ _self.displaySkill('Amour', personnage.amour ?? 3) }}
+                        {{ _self.displaySkill('Soi-même', personnage.soi_meme ?? 3) }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ _self.displaySkill('Justice', personnage.justice ?? 3) }}
+                        {{ _self.displaySkill('Vérité', personnage.verite ?? 3) }}
+                        {{ _self.displaySkill('Pouvoir', personnage.pouvoir ?? 3) }}
+                        {{ _self.displaySkill('Richesse', personnage.richesse ?? 3) }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informations du personnage -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Informations</h6>
+                        <p class="mb-1"><strong>Date de création:</strong> 
+                            {{ personnage.dateCreation is defined ? personnage.dateCreation|date('d/m/Y à H:i') : 'Non définie' }}
+                        </p>
+                        {% if personnage.dateModification is defined and personnage.dateModification %}
+                            <p class="mb-1"><strong>Dernière modification:</strong> 
+                                {{ personnage.dateModification|date('d/m/Y à H:i') }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Actions</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{{ path('app_personnage_edit', {id: personnage.id}) }}" class="btn btn-primary">
+                                <i class="bi bi-pencil me-2"></i>Modifier ce personnage
+                            </a>
+                            <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-people me-2"></i>Tous les personnages
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% macro displaySkill(name, value) %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <strong>{{ name }}</strong>
+    <div class="skill-display">
+        <div class="skill-dots-display">
+            {% for i in 1..5 %}
+                <span class="skill-dot-display {{ value >= i ? 'filled' : '' }}"></span>
+            {% endfor %}
+        </div>
+        <span class="skill-value-display ms-2">{{ value }}/5</span>
+    </div>
+</div>
+{% endmacro %}
+
+{% macro displayTrait(leftLabel, rightLabel, value) %}
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">{{ leftLabel }}</small>
+        <strong class="text-center">{{ leftLabel }} ↔ {{ rightLabel }}</strong>
+        <small class="text-muted">{{ rightLabel }}</small>
+    </div>
+    <div class="trait-display-container">
+        <div class="trait-bar">
+            <div class="trait-indicator" style="left: {{ ((value + 5) / 10 * 100) }}%">
+                {{ value }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block stylesheets %}
+<style>
+    .character-main-card {
+        margin-bottom: 2rem;
+        border: 1px solid #dee2e6;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .character-main-card .card-body {
+        padding: 2rem;
+    }
+
+    .character-avatar-xl {
+        margin-bottom: 1.5rem;
+    }
+
+    .avatar-placeholder {
+        border: 4px solid rgba(255,255,255,0.3);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+
+    .character-badges .badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    .character-description {
+        background: rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    /* Skill dots pour l'affichage */
+    .skill-dots-display {
+        display: flex;
+        gap: 3px;
+    }
+
+    .skill-dot-display {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        border: 1px solid #adb5bd;
+    }
+
+    .skill-dot-display.filled {
+        background-color: #28a745;
+        border-color: #1e7e34;
+    }
+
+    .skill-dots-small {
+        display: flex;
+        gap: 2px;
+    }
+
+    .skill-dot-small {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+    }
+
+    .skill-dot-small.filled {
+        background-color: #28a745;
+    }
+
+    .skill-display {
+        display: flex;
+        align-items: center;
+    }
+
+    .skill-value-display {
+        font-weight: bold;
+        color: #28a745;
+        min-width: 35px;
+    }
+
+    /* Trait bars pour l'affichage */
+    .trait-display-container {
+        position: relative;
+        padding: 10px 0;
+    }
+
+    .trait-bar {
+        height: 6px;
+        background: linear-gradient(to right, #ffab40 0%, #ffa726 50%, #ff8f00 100%);
+        border-radius: 3px;
+        position: relative;
+    }
+
+    .trait-indicator {
+        position: absolute;
+        top: -8px;
+        transform: translateX(-50%);
+        background: #343a40;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        min-width: 25px;
+        text-align: center;
+    }
+
+    .trait-indicator::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 4px solid transparent;
+        border-top-color: #343a40;
+    }
+
+    /* Card headers colorés */
+    .card-header {
+        font-weight: 500;
+    }
+
+    .card-header h5 {
+        margin: 0;
+    }
+
+    /* Animations */
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .character-main-card .card-body {
+            padding: 1rem;
+        }
+        
+        .character-avatar-xl div {
+            width: 100px !important;
+            height: 100px !important;
+            font-size: 2.5rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    // Animation d'entrée pour les cartes
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %} 

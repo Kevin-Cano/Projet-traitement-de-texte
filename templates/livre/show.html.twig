@@ -1,0 +1,645 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ livre.titre }} - Écriture de Livre{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .livre-hero {
+        background: linear-gradient(135deg, #007bff 0%, #6f42c1 100%);
+        border-radius: 15px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        color: white;
+    }
+
+    .livre-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+    }
+
+    .livre-stats .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .livre-stats .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .list-group-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Styles pour les mini-cartes de personnages */
+    .character-preview {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+    }
+
+    .character-preview:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .character-avatar-mini .avatar-placeholder {
+        border: 2px solid rgba(255,255,255,0.3);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .skill-dots-mini {
+        display: flex;
+        gap: 2px;
+        justify-content: center;
+    }
+
+    .skill-dot-mini {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+    }
+
+    .skill-dot-mini.filled {
+        background-color: #ffab40;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .livre-hero {
+            padding: 1.5rem;
+        }
+        
+        .livre-hero h1 {
+            font-size: 2rem;
+        }
+        
+        .d-flex.gap-3 {
+            flex-direction: column;
+            gap: 1rem !important;
+        }
+    }
+
+    /* Animation des cartes */
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+        transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+    /* Styles pour les mini-moodboards */
+    .moodboard-preview-mini {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .moodboard-preview-mini:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .moodboard-mini-preview {
+        height: 120px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Mini mosaïque d'images */
+    .mini-mosaic {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        height: 100%;
+        gap: 1px;
+        position: relative;
+    }
+
+    .mini-mosaic-item {
+        overflow: hidden;
+    }
+
+    .mini-mosaic-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .mini-overlay-more {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .mini-empty-moodboard {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        color: #6c757d;
+    }
+
+    .mini-empty-moodboard i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Badge personnalisé */
+    .badge-sm {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_index') }}">Livres</a></li>
+                <li class="breadcrumb-item active">{{ livre.titre }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-book-fill me-2 text-primary"></i>
+            {{ livre.titre }}
+        </h1>
+        {% if livre.auteur is defined and livre.auteur %}
+            <p class="text-muted mb-0">par {{ livre.auteur }}</p>
+        {% endif %}
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_livre_edit', {id: livre.id}) }}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil me-2"></i>Modifier
+            </a>
+        </div>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-plus-circle me-2"></i>Ajouter
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ path('app_chapitre_new', {livreId: livre.id}) }}">
+                    <i class="bi bi-file-text me-2"></i>Nouveau chapitre
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if livre.description is defined and livre.description %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-info-circle me-2 text-info"></i>
+                        Description
+                    </h5>
+                    <p class="card-text">{{ livre.description }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-text-fill display-4 mb-2"></i>
+                <h3 class="card-title">{{ chapitres|length }}</h3>
+                <p class="card-text">Chapitre{{ chapitres|length > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people-fill display-4 mb-2"></i>
+                <h3 class="card-title">{{ personnages|length }}</h3>
+                <p class="card-text">Personnage{{ personnages|length > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-images display-4 mb-2"></i>
+                <h3 class="card-title">{{ totalImages }}</h3>
+                <p class="card-text">Image{{ totalImages > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-warning text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-fonts display-4 mb-2"></i>
+                <h3 class="card-title">{{ totalMots }}</h3>
+                <p class="card-text">Mots total</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Actions principales -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 bg-light">
+            <div class="card-body text-center py-4">
+                <h5 class="mb-3">Continuer votre travail</h5>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-file-text me-2"></i>
+                        Gérer les chapitres
+                    </a>
+                    <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-success btn-lg">
+                        <i class="bi bi-people me-2"></i>
+                        Gérer les personnages
+                    </a>
+                    <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-info btn-lg">
+                        <i class="bi bi-images me-2"></i>
+                        Gérer les moodboards
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Chapitres -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-text me-2 text-primary"></i>
+                    Chapitres
+                </h5>
+                <div>
+                    {% if chapitres|length > 0 %}
+                        <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="bi bi-list me-1"></i>Gérer
+                        </a>
+                    {% endif %}
+                    <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus me-1"></i>Ajouter
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if chapitres|length > 0 %}
+                    <div class="list-group list-group-flush">
+                        {% for chapitre in chapitres|slice(0, 5) %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-start">
+                                        <span class="badge bg-secondary me-3 mt-1">{{ chapitre.ordre|default(loop.index) }}</span>
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ chapitre.titre }}</h6>
+                                            {% if chapitre.contenu is defined and chapitre.contenu|length > 0 %}
+                                                <small class="text-muted">
+                                                    {{ chapitre.contenu|striptags|slice(0, 100) ~ (chapitre.contenu|striptags|length > 100 ? '...' : '') }}
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted fst-italic">Chapitre vide</small>
+                                            {% endif %}
+                                            <div class="mt-1">
+                                                <span class="badge bg-light text-dark me-2">
+                                                    {{ chapitre.nombreMots|default(0) }} mots
+                                                </span>
+                                                {% if chapitre.dateModification is defined and chapitre.dateModification %}
+                                                    <small class="text-muted">
+                                                        Modifié le {{ chapitre.dateModification|date('d/m/Y') }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ path('app_chapitre_edit', {id: chapitre.id}) }}" 
+                                       class="btn btn-primary" title="Écrire">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a href="{{ path('app_chapitre_show', {id: chapitre.id}) }}" 
+                                       class="btn btn-outline-secondary" title="Lire">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if chapitres|length > 5 %}
+                        <div class="mt-3 text-center">
+                            <p class="text-muted">... et {{ chapitres|length - 5 }} autre{{ chapitres|length - 5 > 1 ? 's' : '' }} chapitre{{ chapitres|length - 5 > 1 ? 's' : '' }}</p>
+                            <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-outline-primary btn-sm">
+                                Voir tous les chapitres <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Actions rapides pour les chapitres -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="card-title">Continuer l'écriture</h6>
+                                    <p class="card-text small text-muted">Reprendre là où vous vous êtes arrêté</p>
+                                    <a href="{{ path('app_chapitre_edit', {id: chapitres|first.id}) }}" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-pencil-square me-2"></i>Écrire dans "{{ chapitres|first.titre }}"
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="card-title">Nouveau chapitre</h6>
+                                    <p class="card-text small text-muted">Ajouter la suite de votre histoire</p>
+                                    <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-success btn-sm">
+                                        <i class="bi bi-plus-circle me-2"></i>Créer un chapitre
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-file-text display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucun chapitre</h5>
+                        <p class="text-muted mb-4">Commencez votre livre en créant le premier chapitre.</p>
+                        <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Créer le premier chapitre
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Personnages -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-people me-2 text-success"></i>
+                    Personnages
+                </h5>
+                <div>
+                    {% if personnages|length > 0 %}
+                        <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-sm btn-outline-success me-2">
+                            <i class="bi bi-list me-1"></i>Gérer
+                        </a>
+                    {% endif %}
+                    <a href="{{ path('app_personnage_new', {livreId: livre.id}) }}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus me-1"></i>Ajouter
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if personnages|length > 0 %}
+                    <div class="row">
+                        {% for personnage in personnages|slice(0, 4) %}
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="card h-100 character-preview">
+                                    <div class="card-body text-center">
+                                        <!-- Avatar mini -->
+                                        <div class="character-avatar-mini mx-auto mb-3">
+                                            {% if personnage.photo is defined and personnage.photo %}
+                                                <!-- Photo du personnage -->
+                                                <img class="character-micro-photo rounded-circle" 
+                                                     style="width: 60px; height: 60px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.1);" 
+                                                     src="/{{ personnage.photo }}" alt="Photo de {{ personnage.nom }}">
+                                            {% else %}
+                                                <!-- Avatar par défaut avec initiales -->
+                                                <div class="avatar-placeholder bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                                     style="width: 60px; height: 60px; font-size: 1.5rem; font-weight: bold;">
+                                                    {{ personnage.prenom is defined and personnage.prenom ? 
+                                                       personnage.prenom|slice(0, 1)|upper : 
+                                                       personnage.nom|slice(0, 1)|upper }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <h6 class="card-title mb-1">
+                                            {% if personnage.prenom is defined and personnage.prenom %}
+                                                {{ personnage.prenom }} {{ personnage.nom|upper }}
+                                            {% else %}
+                                                {{ personnage.nom|upper }}
+                                            {% endif %}
+                                        </h6>
+                                        
+                                        {% if personnage.role is defined and personnage.role %}
+                                            <small class="text-muted">{{ personnage.role }}</small>
+                                        {% endif %}
+                                        
+                                        <!-- Compétences principales mini -->
+                                        <div class="mt-2">
+                                            {% set mainSkills = [
+                                                {name: 'Force', value: personnage.force ?? 3},
+                                                {name: 'Intelligence', value: personnage.intelligence ?? 3}
+                                            ] %}
+                                            {% for skill in mainSkills %}
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <small class="text-muted">{{ skill.name }}</small>
+                                                    <div class="skill-dots-mini">
+                                                        {% for i in 1..5 %}
+                                                            <span class="skill-dot-mini {{ skill.value >= i ? 'filled' : '' }}"></span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <div class="mt-3">
+                                            <a href="{{ path('app_personnage_show', {id: personnage.id}) }}" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-eye me-1"></i>Voir
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if personnages|length > 4 %}
+                        <div class="mt-3 text-center">
+                            <p class="text-muted">... et {{ personnages|length - 4 }} autre{{ personnages|length - 4 > 1 ? 's' : '' }} personnage{{ personnages|length - 4 > 1 ? 's' : '' }}</p>
+                            <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-outline-success btn-sm">
+                                Voir tous les personnages <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-people display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucun personnage</h5>
+                        <p class="text-muted mb-4">Créez les personnages de votre histoire pour donner vie à votre univers.</p>
+                        <a href="{{ path('app_personnage_new', {livreId: livre.id}) }}" class="btn btn-success">
+                            <i class="bi bi-person-plus me-2"></i>Créer le premier personnage
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section Moodboards -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-images me-2 text-info"></i>
+                    Moodboards
+                </h5>
+                <div>
+                    {% if moodboards|length > 0 %}
+                        <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-sm btn-outline-info me-2">
+                            <i class="bi bi-list me-1"></i>Gérer
+                        </a>
+                    {% endif %}
+                    <a href="{{ path('app_moodboard_new', {livreId: livre.id}) }}" class="btn btn-sm btn-info">
+                        <i class="bi bi-plus me-1"></i>Ajouter
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if moodboards|length > 0 %}
+                    <div class="row">
+                        {% for moodboard in moodboards|slice(0, 3) %}
+                            <div class="col-lg-4 col-md-6 mb-3">
+                                <div class="card h-100 moodboard-preview-mini">
+                                    <div class="moodboard-mini-preview">
+                                        {% if moodboard.images is defined and moodboard.images|length > 0 %}
+                                            <!-- Affichage des 4 premières images en mini-mosaïque -->
+                                            <div class="mini-mosaic">
+                                                {% for image in moodboard.images|slice(0, 4) %}
+                                                    <div class="mini-mosaic-item">
+                                                        <img src="/{{ image.chemin }}" alt="{{ image.description ?? image.nom_original }}" class="img-fluid">
+                                                    </div>
+                                                {% endfor %}
+                                                {% if moodboard.images|length > 4 %}
+                                                    <div class="mini-overlay-more">
+                                                        <span class="mini-more-count">+{{ moodboard.images|length - 4 }}</span>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <!-- Placeholder vide -->
+                                            <div class="mini-empty-moodboard">
+                                                <i class="bi bi-images text-muted"></i>
+                                                <small class="text-muted">Vide</small>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title mb-1">{{ moodboard.nom }}</h6>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <span class="badge bg-info badge-sm">{{ moodboard.type|title }}</span>
+                                            </small>
+                                            <small class="text-muted">
+                                                {{ moodboard.images is defined ? moodboard.images|length : 0 }} img
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="mt-2">
+                                            <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="bi bi-eye me-1"></i>Ouvrir
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if moodboards|length > 3 %}
+                        <div class="mt-3 text-center">
+                            <p class="text-muted">... et {{ moodboards|length - 3 }} autre{{ moodboards|length - 3 > 1 ? 's' : '' }} moodboard{{ moodboards|length - 3 > 1 ? 's' : '' }}</p>
+                            <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-info btn-sm">
+                                Voir tous les moodboards <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-images display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucun moodboard</h5>
+                        <p class="text-muted mb-4">Créez des tableaux visuels pour organiser vos références et inspirations.</p>
+                        <a href="{{ path('app_moodboard_new', {livreId: livre.id}) }}" class="btn btn-info">
+                            <i class="bi bi-plus-circle me-2"></i>Créer le premier moodboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informations sur le livre -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Informations</h6>
+                        <p class="mb-1"><strong>Date de création:</strong> 
+                            {{ livre.dateCreation is defined ? livre.dateCreation|date('d/m/Y à H:i') : 'Non définie' }}
+                        </p>
+                        {% if livre.dateModification is defined and livre.dateModification %}
+                            <p class="mb-1"><strong>Dernière modification:</strong> 
+                                {{ livre.dateModification|date('d/m/Y à H:i') }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Actions</h6>
+                        <div class="d-grid gap-2">
+                            <a href="{{ path('app_livre_edit', {id: livre.id}) }}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil me-2"></i>Modifier ce livre
+                            </a>
+                            <a href="{{ path('app_livre_index') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Retour à mes livres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

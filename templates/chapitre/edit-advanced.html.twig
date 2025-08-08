@@ -1,0 +1,369 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ chapitre.titre }} - Éditeur Avancé{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ asset('assets/styles/advanced-editor.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="advanced-editor-container">
+    <!-- Zone principale d'édition -->
+    <div class="advanced-editor-main">
+        <!-- Barre d'outils sera injectée ici par JavaScript -->
+        
+        <!-- Zone d'édition CodeMirror -->
+        <div class="editor-wrapper">
+            <div id="advanced-editor" class="h-100"></div>
+        </div>
+        
+        <!-- Indicateur de sauvegarde -->
+        <div class="save-indicator">
+            <span id="save-status" class="badge bg-success">
+                <i class="bi bi-check-circle"></i> Sauvegardé
+            </span>
+        </div>
+    </div>
+    
+    <!-- Sidebar sera injectée ici par JavaScript -->
+</div>
+
+<!-- Modals -->
+<!-- Modal d'analyse de texte -->
+<div class="modal fade" id="textAnalysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Analyse avancée du texte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Statistiques générales</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <h4 id="analysis-words" class="text-primary">0</h4>
+                                        <small class="text-muted">Mots</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h4 id="analysis-sentences" class="text-info">0</h4>
+                                        <small class="text-muted">Phrases</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <h4 id="analysis-paragraphs" class="text-success">0</h4>
+                                        <small class="text-muted">Paragraphes</small>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <h5 id="analysis-readability" class="text-warning">0</h5>
+                                        <small class="text-muted">Score de lisibilité</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <h5 id="analysis-complexity" class="text-danger">0</h5>
+                                        <small class="text-muted">Complexité</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Analyse de sentiment</h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="sentimentChart" width="300" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Mots les plus fréquents</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="wordCloud" class="text-center">
+                                <!-- Word cloud sera généré ici -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="exportAnalysis()">
+                    Exporter l'analyse
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des objectifs d'écriture -->
+<div class="modal fade" id="writingGoalsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Objectifs d'écriture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="goalsForm">
+                    <div class="mb-3">
+                        <label class="form-label">Objectif quotidien (mots)</label>
+                        <input type="number" class="form-control" id="dailyGoalInput" value="500" min="100" max="5000" step="50">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Objectif du chapitre (mots)</label>
+                        <input type="number" class="form-control" id="chapterGoalInput" value="2000" min="500" max="10000" step="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" class="form-control" id="deadlineInput">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="notificationsEnabled">
+                            <label class="form-check-label" for="notificationsEnabled">
+                                Activer les notifications de progression
+                            </label>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <h6>Progression actuelle</h6>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" id="dailyProgress" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">Aujourd'hui: <span id="todayWords">0</span> mots</small>
+                        <small class="text-muted">Objectif: <span id="todayGoal">500</span> mots</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveGoals()">
+                    Sauvegarder
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des paramètres d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Exporter le chapitre</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6>Format d'export</h6>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="exportFormat" id="formatPDF" value="pdf" checked>
+                            <label class="btn btn-outline-primary" for="formatPDF">
+                                <i class="bi bi-file-earmark-pdf"></i> PDF
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="exportFormat" id="formatDOCX" value="docx">
+                            <label class="btn btn-outline-primary" for="formatDOCX">
+                                <i class="bi bi-file-earmark-word"></i> DOCX
+                            </label>
+                            
+                            <input type="radio" class="btn-check" name="exportFormat" id="formatEPUB" value="epub">
+                            <label class="btn btn-outline-primary" for="formatEPUB">
+                                <i class="bi bi-book"></i> EPUB
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <h6>Options de mise en page</h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="form-label">Police</label>
+                                <select class="form-select" id="exportFont">
+                                    <option value="Georgia">Georgia</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Arial">Arial</option>
+                                    <option value="Calibri">Calibri</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Taille</label>
+                                <select class="form-select" id="exportFontSize">
+                                    <option value="10">10pt</option>
+                                    <option value="11">11pt</option>
+                                    <option value="12" selected>12pt</option>
+                                    <option value="14">14pt</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeMetadata" checked>
+                            <label class="form-check-label" for="includeMetadata">
+                                Inclure les métadonnées (titre, auteur, date)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeStats">
+                            <label class="form-check-label" for="includeStats">
+                                Inclure les statistiques du chapitre
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="performExport()">
+                    <i class="bi bi-download"></i> Exporter
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    
+    <!-- Dépendances pour l'éditeur avancé -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.0/marked.min.js"></script>
+    
+    <!-- Scripts de l'éditeur avancé -->
+    <script type="module">
+        import AdvancedEditor from '{{ asset('assets/js/advanced-editor.js') }}';
+        
+        // Initialiser l'éditeur avancé
+        window.advancedEditor = new AdvancedEditor('advanced-editor', {
+            initialContent: {{ chapitre.contenu|json_encode|raw }},
+            saveUrl: '{{ path('app_chapitre_api_save', {id: chapitre.id}) }}',
+            chapterId: {{ chapitre.id }},
+            bookId: {{ livre.id }},
+            title: {{ chapitre.titre|json_encode|raw }},
+            autoSave: true,
+            autoSaveInterval: 2000
+        });
+        
+        // Fonctions globales pour les modals
+        window.showTextAnalysis = function() {
+            const content = advancedEditor.getContent();
+            const analysis = analyzeText(content);
+            updateAnalysisModal(analysis);
+            new bootstrap.Modal(document.getElementById('textAnalysisModal')).show();
+        };
+        
+        window.showWritingGoals = function() {
+            loadUserGoals();
+            new bootstrap.Modal(document.getElementById('writingGoalsModal')).show();
+        };
+        
+        window.showExportModal = function() {
+            new bootstrap.Modal(document.getElementById('exportModal')).show();
+        };
+        
+        // Raccourcis clavier globaux
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+                e.preventDefault();
+                showTextAnalysis();
+            }
+            if (e.ctrlKey && e.shiftKey && e.key === 'G') {
+                e.preventDefault();
+                showWritingGoals();
+            }
+            if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+                e.preventDefault();
+                showExportModal();
+            }
+        });
+    </script>
+    
+    <!-- Analytics et statistiques -->
+    <script src="{{ asset('assets/js/text-analytics.js') }}"></script>
+    <script src="{{ asset('assets/js/export-manager.js') }}"></script>
+    <script src="{{ asset('assets/js/writing-goals.js') }}"></script>
+    
+    <script>
+        // Données du chapitre pour les scripts
+        window.chapterData = {
+            id: {{ chapitre.id }},
+            title: {{ chapitre.titre|json_encode|raw }},
+            bookId: {{ livre.id }},
+            bookTitle: {{ livre.titre|json_encode|raw }},
+            wordCount: {{ chapitre.nombreMots|default(0) }},
+            createdAt: '{{ chapitre.dateCreation|date('c') }}',
+            updatedAt: {{ chapitre.dateModification ? "'" ~ chapitre.dateModification|date('c') ~ "'" : 'null' }}
+        };
+        
+        // Initialiser les modules
+        document.addEventListener('DOMContentLoaded', function() {
+            // Charger les personnages pour la sidebar
+            loadCharactersForSidebar();
+            
+            // Initialiser les tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        async function loadCharactersForSidebar() {
+            try {
+                const response = await fetch('{{ path('app_personnage_api_list', {bookId: livre.id}) }}');
+                const characters = await response.json();
+                updateCharactersSidebar(characters);
+            } catch (error) {
+                console.error('Erreur lors du chargement des personnages:', error);
+            }
+        }
+        
+        function updateCharactersSidebar(characters) {
+            const container = document.getElementById('characters-content');
+            if (characters.length === 0) {
+                container.innerHTML = '<p class="text-muted small">Aucun personnage</p>';
+                return;
+            }
+            
+            const html = characters.map(character => `
+                <div class="character-mention" data-character-id="${character.id}">
+                    <div class="character-avatar">
+                        ${character.prenom ? character.prenom.charAt(0).toUpperCase() : character.nom.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="character-info">
+                        <div class="character-name">${character.prenom} ${character.nom}</div>
+                        <small class="text-muted">${character.role || 'Personnage'}</small>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+    </script>
+{% endblock %} 

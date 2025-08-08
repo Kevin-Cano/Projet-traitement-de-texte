@@ -1,0 +1,628 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Chronologie{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .world-building-header {
+            background: linear-gradient(135deg, #6f42c1 0%, #8e44ad 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .timeline-container {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #6f42c1, #8e44ad, #6f42c1);
+            transform: translateX(-50%);
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 3rem;
+            width: 100%;
+        }
+        
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-left: calc(50% + 30px);
+            text-align: left;
+        }
+        
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-right: calc(50% + 30px);
+            text-align: right;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 4px solid white;
+            z-index: 10;
+        }
+        
+        .marker-bataille { background: #dc3545; }
+        .marker-naissance { background: #28a745; }
+        .marker-mort { background: #343a40; }
+        .marker-couronnement { background: #ffc107; }
+        .marker-découverte { background: #17a2b8; }
+        .marker-catastrophe { background: #fd7e14; }
+        .marker-autre { background: #6c757d; }
+        
+        .timeline-content {
+            position: relative;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .timeline-content:hover {
+            transform: translateY(-2px);
+        }
+        
+        .timeline-item:nth-child(odd) .timeline-content::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 20px;
+            border: 10px solid transparent;
+            border-right-color: white;
+        }
+        
+        .timeline-item:nth-child(even) .timeline-content::before {
+            content: '';
+            position: absolute;
+            left: 100%;
+            top: 20px;
+            border: 10px solid transparent;
+            border-left-color: white;
+        }
+        
+        .event-date {
+            font-size: 0.9rem;
+            color: #6f42c1;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .event-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .event-type {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .type-bataille { background: #f8d7da; color: #721c24; }
+        .type-naissance { background: #d4edda; color: #155724; }
+        .type-mort { background: #d6d8db; color: #383d41; }
+        .type-couronnement { background: #fff3cd; color: #856404; }
+        .type-découverte { background: #d1ecf1; color: #0c5460; }
+        .type-catastrophe { background: #fde2e4; color: #721c24; }
+        .type-autre { background: #e2e3e5; color: #495057; }
+        
+        .event-description {
+            color: #666;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        
+        .event-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+            border-top: 1px solid #e9ecef;
+            padding-top: 0.5rem;
+        }
+        
+        .event-importance {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .importance-critique { background: #dc3545; color: white; }
+        .importance-majeur { background: #fd7e14; color: white; }
+        .importance-mineur { background: #6c757d; color: white; }
+        
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .period-header {
+            background: linear-gradient(135deg, #6f42c1, #8e44ad);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            margin: 2rem 0 1rem 0;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            position: relative;
+            z-index: 5;
+        }
+        
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 30px;
+            }
+            
+            .timeline-item:nth-child(odd) .timeline-content,
+            .timeline-item:nth-child(even) .timeline-content {
+                margin-left: 60px;
+                margin-right: 0;
+                text-align: left;
+            }
+            
+            .timeline-marker {
+                left: 30px;
+                transform: translateX(-50%);
+            }
+            
+            .timeline-item:nth-child(odd) .timeline-content::before,
+            .timeline-item:nth-child(even) .timeline-content::before {
+                right: 100%;
+                left: auto;
+                border-right-color: white;
+                border-left-color: transparent;
+            }
+        }
+        
+        .secret-event {
+            opacity: 0.7;
+            border: 2px dashed #ffc107;
+        }
+        
+        .secret-event::after {
+            content: '🔒';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="world-building-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="bi bi-clock-history me-3"></i>
+                    Chronologie des Événements
+                </h1>
+                <p class="mb-0 mt-2 opacity-75">
+                    {% if livre_actuel %}
+                        Histoire de "{{ livre_actuel.titre }}"
+                    {% else %}
+                        Timeline complète de tous vos univers
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{{ path('app_world_building_lieux') }}" class="btn btn-light">
+                        <i class="bi bi-geo-alt me-2"></i>
+                        Lieux
+                    </a>
+                    <a href="{{ path('app_world_building_evenement_nouveau') }}" class="btn btn-warning">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Nouvel Événement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Filtres -->
+    <div class="filters-section">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <label class="form-label">Filtrer par livre :</label>
+                <select class="form-select" onchange="window.location.href='{{ path('app_world_building_chronologie') }}/' + (this.value || '')">
+                    <option value="">Tous les livres</option>
+                    {% for livre in livres %}
+                        <option value="{{ livre.id }}" {{ livre_actuel and livre_actuel.id == livre.id ? 'selected' : '' }}>
+                            {{ livre.titre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Type d'événement :</label>
+                <select class="form-select" id="typeFilter" onchange="filterByType()">
+                    <option value="">Tous les types</option>
+                    <option value="bataille">⚔️ Batailles</option>
+                    <option value="naissance">👶 Naissances</option>
+                    <option value="mort">💀 Décès</option>
+                    <option value="couronnement">👑 Couronnements</option>
+                    <option value="découverte">🔍 Découvertes</option>
+                    <option value="catastrophe">🌪️ Catastrophes</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Importance :</label>
+                <select class="form-select" id="importanceFilter" onchange="filterByImportance()">
+                    <option value="">Toutes</option>
+                    <option value="critique">🔥 Critique</option>
+                    <option value="majeur">⭐ Majeur</option>
+                    <option value="mineur">📌 Mineur</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="showSecrets" onchange="toggleSecrets()">
+                    <label class="form-check-label" for="showSecrets">
+                        Afficher les événements secrets
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    {% if evenements|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ evenements|length }}</h3>
+                    <small class="text-muted">Événements totaux</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-success">{{ evenements|filter(e => e.importance == 'critique')|length }}</h3>
+                    <small class="text-muted">Événements critiques</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-warning">{{ evenements|filter(e => e.secret)|length }}</h3>
+                    <small class="text-muted">Événements secrets</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="text-info">{{ timeline|length }}</h3>
+                    <small class="text-muted">Périodes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Timeline -->
+    <div class="timeline-container">
+        {% if timeline|length == 0 %}
+            <div class="text-center py-5">
+                <i class="bi bi-clock-history" style="font-size: 4rem; color: #ccc;"></i>
+                <h4 class="mt-3 text-muted">Aucun événement dans la chronologie</h4>
+                <p class="text-muted">Commencez par créer votre premier événement historique.</p>
+                <a href="{{ path('app_world_building_evenement_nouveau') }}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Créer un Événement
+                </a>
+            </div>
+        {% else %}
+            <div class="timeline">
+                {% for period_name, period_data in timeline %}
+                    <div class="period-header">
+                        {{ period_name }}
+                        <small class="opacity-75 ms-2">({{ period_data.events|length }} événement{{ period_data.events|length > 1 ? 's' : '' }})</small>
+                    </div>
+                    
+                    {% for event in period_data.events %}
+                        <div class="timeline-item" data-type="{{ event.type }}" data-importance="{{ event.importance }}" {{ event.secret ? 'data-secret="true"' : '' }}>
+                            <div class="timeline-marker marker-{{ event.type|default('autre') }}"></div>
+                            <div class="timeline-content {{ event.secret ? 'secret-event' : '' }}">
+                                <div class="event-date">
+                                    {% if event.date %}
+                                        {{ event.date }}
+                                    {% elseif event.annee %}
+                                        Année {{ event.annee }}
+                                    {% else %}
+                                        Date inconnue
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="event-title">{{ event.nom }}</div>
+                                
+                                <div class="event-type type-{{ event.type|default('autre') }}">
+                                    {% if event.type == 'bataille' %}⚔️ Bataille
+                                    {% elseif event.type == 'naissance' %}👶 Naissance
+                                    {% elseif event.type == 'mort' %}💀 Décès
+                                    {% elseif event.type == 'couronnement' %}👑 Couronnement
+                                    {% elseif event.type == 'découverte' %}🔍 Découverte
+                                    {% elseif event.type == 'catastrophe' %}🌪️ Catastrophe
+                                    {% else %}📅 Événement
+                                    {% endif %}
+                                </div>
+                                
+                                {% if event.description %}
+                                    <div class="event-description">
+                                        {{ event.description|nl2br }}
+                                    </div>
+                                {% endif %}
+                                
+                                {% if event.causes or event.consequences %}
+                                    <div class="row">
+                                        {% if event.causes %}
+                                            <div class="col-md-6">
+                                                <strong>Causes :</strong>
+                                                {% if event.causes is iterable %}
+                                                    <ul class="small mb-0">
+                                                        {% for cause in event.causes %}
+                                                            <li>{{ cause }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% else %}
+                                                    <p class="small">{{ event.causes|nl2br }}</p>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        {% if event.consequences %}
+                                            <div class="col-md-6">
+                                                <strong>Conséquences :</strong>
+                                                {% if event.consequences is iterable %}
+                                                    <ul class="small mb-0">
+                                                        {% for consequence in event.consequences %}
+                                                            <li>{{ consequence }}</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                {% else %}
+                                                    <p class="small">{{ event.consequences|nl2br }}</p>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="event-meta">
+                                    <div>
+                                        {% if event.lieu %}
+                                            <i class="bi bi-geo-alt me-1"></i>{{ event.lieu }}
+                                        {% endif %}
+                                        {% if event.protagonistes_noms and event.protagonistes_noms|length > 0 %}
+                                            <br><i class="bi bi-people me-1"></i>
+                                            {{ event.protagonistes_noms|join(', ') }}
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <span class="event-importance importance-{{ event.importance|default('mineur') }}">
+                                            {{ event.importance|default('mineur')|title }}
+                                        </span>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#">
+                                                    <i class="bi bi-eye me-2"></i>Voir détails
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{{ path('app_world_building_evenement_edit', {id: event.id}) }}">
+                                                    <i class="bi bi-pencil me-2"></i>Modifier
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ event.id }})">
+                                                    <i class="bi bi-trash me-2"></i>Supprimer
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        let showingSecrets = false;
+        
+        // Filtrage par type
+        function filterByType() {
+            const selectedType = document.getElementById('typeFilter').value;
+            const items = document.querySelectorAll('.timeline-item');
+            
+            items.forEach(item => {
+                if (!selectedType || item.dataset.type === selectedType) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            updatePeriodHeaders();
+        }
+        
+        // Filtrage par importance
+        function filterByImportance() {
+            const selectedImportance = document.getElementById('importanceFilter').value;
+            const items = document.querySelectorAll('.timeline-item');
+            
+            items.forEach(item => {
+                if (!selectedImportance || item.dataset.importance === selectedImportance) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            updatePeriodHeaders();
+        }
+        
+        // Toggle des événements secrets
+        function toggleSecrets() {
+            showingSecrets = document.getElementById('showSecrets').checked;
+            const secretItems = document.querySelectorAll('[data-secret="true"]');
+            
+            secretItems.forEach(item => {
+                if (showingSecrets) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            updatePeriodHeaders();
+        }
+        
+        // Mettre à jour la visibilité des headers de période
+        function updatePeriodHeaders() {
+            const headers = document.querySelectorAll('.period-header');
+            
+            headers.forEach(header => {
+                let nextElement = header.nextElementSibling;
+                let hasVisibleEvents = false;
+                
+                while (nextElement && !nextElement.classList.contains('period-header')) {
+                    if (nextElement.style.display !== 'none') {
+                        hasVisibleEvents = true;
+                        break;
+                    }
+                    nextElement = nextElement.nextElementSibling;
+                }
+                
+                header.style.display = hasVisibleEvents ? 'block' : 'none';
+            });
+        }
+        
+        // Confirmation de suppression
+        function confirmDelete(eventId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?\n\nCette action est irréversible.')) {
+                // Créer un formulaire temporaire pour la requête POST
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/world-building/evenement/' + eventId + '/delete';
+                
+                // Ajouter au DOM et soumettre
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        // Animation d'apparition progressive
+        document.addEventListener('DOMContentLoaded', function() {
+            const items = document.querySelectorAll('.timeline-item');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '0';
+                        entry.target.style.transform = 'translateY(20px)';
+                        entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                        
+                        setTimeout(() => {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }, 100);
+                        
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            items.forEach(item => observer.observe(item));
+            
+            // Initialiser l'état des événements secrets
+            if (!showingSecrets) {
+                toggleSecrets();
+            }
+        });
+        
+        // Navigation par années (si beaucoup d'événements)
+        function scrollToYear(year) {
+            const items = document.querySelectorAll('.timeline-item');
+            
+            for (let item of items) {
+                const dateText = item.querySelector('.event-date').textContent;
+                if (dateText.includes(year.toString())) {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    // Effet de surbrillance temporaire
+                    item.style.background = 'rgba(111, 66, 193, 0.1)';
+                    setTimeout(() => {
+                        item.style.background = '';
+                    }, 2000);
+                    break;
+                }
+            }
+        }
+        
+        // Recherche rapide dans les événements
+        function searchEvents(query) {
+            const items = document.querySelectorAll('.timeline-item');
+            const searchTerm = query.toLowerCase();
+            
+            items.forEach(item => {
+                const title = item.querySelector('.event-title').textContent.toLowerCase();
+                const description = item.querySelector('.event-description')?.textContent.toLowerCase() || '';
+                
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            updatePeriodHeaders();
+        }
+    </script>
+{% endblock %} 

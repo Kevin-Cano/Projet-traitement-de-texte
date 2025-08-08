@@ -1,0 +1,693 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Carte Interactive{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .map-container {
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .world-map {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 50%, #90caf9 100%);
+            cursor: grab;
+            position: relative;
+        }
+        
+        .world-map:active {
+            cursor: grabbing;
+        }
+        
+        .location-marker {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            z-index: 10;
+        }
+        
+        .location-marker:hover {
+            transform: scale(1.2);
+            z-index: 20;
+        }
+        
+        .marker-ville { background: #2196f3; color: white; }
+        .marker-château { background: #9c27b0; color: white; }
+        .marker-forêt { background: #4caf50; color: white; }
+        .marker-montagne { background: #607d8b; color: white; }
+        .marker-autre { background: #ff9800; color: white; }
+        
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .map-sidebar {
+            width: 300px;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .location-tooltip {
+            position: absolute;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .location-tooltip.show {
+            opacity: 1;
+        }
+        
+        .location-list-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .location-list-item:hover {
+            background: #e9ecef;
+        }
+        
+        .location-list-item.active {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+        }
+        
+        .location-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 1rem;
+        }
+        
+        .world-building-header {
+            background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .zoom-level {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="world-building-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="bi bi-map me-3"></i>
+                    Carte Interactive
+                </h1>
+                <p class="mb-0 mt-2 opacity-75">
+                    {% if livre_actuel %}
+                        Univers de "{{ livre_actuel.titre }}"
+                    {% else %}
+                        Explorez tous vos univers
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    <a href="{{ path('app_world_building_lieux') }}" class="btn btn-light">
+                        <i class="bi bi-list me-2"></i>
+                        Liste des Lieux
+                    </a>
+                    <a href="{{ path('app_world_building_lieu_nouveau') }}" class="btn btn-warning">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Nouveau Lieu
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Carte principale -->
+        <div class="col-lg-9">
+            <div class="map-container">
+                <canvas id="worldMap" class="world-map" width="{{ map_config.width }}" height="{{ map_config.height }}"></canvas>
+                
+                <!-- Contrôles de la carte -->
+                <div class="map-controls">
+                    <button class="btn btn-primary btn-sm" onclick="zoomIn()" title="Zoom avant">
+                        <i class="bi bi-zoom-in"></i>
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="zoomOut()" title="Zoom arrière">
+                        <i class="bi bi-zoom-out"></i>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="resetView()" title="Réinitialiser la vue">
+                        <i class="bi bi-house"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="toggleAddMode()" id="addModeBtn" title="Mode ajout de lieu">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+                
+                <!-- Tooltip pour les lieux -->
+                <div id="locationTooltip" class="location-tooltip"></div>
+            </div>
+            
+            <!-- Informations de navigation -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Navigation</h6>
+                            <small class="text-muted">
+                                • Cliquez et glissez pour vous déplacer<br>
+                                • Molette de la souris pour zoomer<br>
+                                • Cliquez sur un lieu pour voir les détails
+                            </small>
+                            <div class="zoom-level">
+                                Zoom: <span id="zoomDisplay">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>Filtres</h6>
+                            <select class="form-select form-select-sm mb-2" id="bookFilter">
+                                <option value="">Tous les livres</option>
+                                {% for livre in livres %}
+                                    <option value="{{ livre.id }}" {{ livre_actuel and livre_actuel.id == livre.id ? 'selected' : '' }}>
+                                        {{ livre.titre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <button class="btn btn-outline-primary btn-sm filter-btn active" data-type="all">Tous</button>
+                                <button class="btn btn-outline-primary btn-sm filter-btn" data-type="ville">🏙️ Villes</button>
+                                <button class="btn btn-outline-primary btn-sm filter-btn" data-type="château">🏰 Châteaux</button>
+                                <button class="btn btn-outline-primary btn-sm filter-btn" data-type="forêt">🌲 Forêts</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar avec liste des lieux -->
+        <div class="col-lg-3">
+            <div class="map-sidebar">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">
+                        <i class="bi bi-geo-alt me-2"></i>
+                        Lieux
+                    </h5>
+                    <span class="badge bg-primary" id="locationCount">{{ locations|length }}</span>
+                </div>
+                
+                <div id="locationsList">
+                    {% if locations|length == 0 %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-geo-alt" style="font-size: 2rem; color: #ccc;"></i>
+                            <p class="text-muted mt-2">Aucun lieu sur cette carte</p>
+                            <button class="btn btn-sm btn-primary" onclick="toggleAddMode()">
+                                Ajouter un lieu
+                            </button>
+                        </div>
+                    {% else %}
+                        {% for location in locations %}
+                            <div class="location-list-item" data-location-id="{{ location.id }}" onclick="focusLocation({{ location.id }})">
+                                <div class="location-icon marker-{{ location.type }}">
+                                    {% if location.type == 'ville' %}🏙️
+                                    {% elseif location.type == 'château' %}🏰
+                                    {% elseif location.type == 'forêt' %}🌲
+                                    {% elseif location.type == 'montagne' %}⛰️
+                                    {% else %}📍
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">{{ location.name }}</div>
+                                    <small class="text-muted">{{ location.type|title }}</small>
+                                    {% if location.population > 0 %}
+                                        <br><small class="text-info">{{ location.population|number_format }} hab.</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un lieu -->
+<div class="modal fade" id="addLocationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un Lieu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addLocationForm">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du lieu</label>
+                        <input type="text" class="form-control" id="locationName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <select class="form-select" id="locationType">
+                            <option value="ville">🏙️ Ville</option>
+                            <option value="château">🏰 Château</option>
+                            <option value="forêt">🌲 Forêt</option>
+                            <option value="montagne">⛰️ Montagne</option>
+                            <option value="autre">📍 Autre</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="locationDescription" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <label class="form-label">Coordonnée X</label>
+                            <input type="number" class="form-control" id="locationX" readonly>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Coordonnée Y</label>
+                            <input type="number" class="form-control" id="locationY" readonly>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveLocation()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Configuration de la carte
+        const mapConfig = {{ map_config|json_encode|raw }};
+        const locations = {{ locations|json_encode|raw }};
+        
+        // Variables globales
+        let canvas, ctx;
+        let currentZoom = 1.0;
+        let panX = 0, panY = 0;
+        let isDragging = false;
+        let lastMouseX = 0, lastMouseY = 0;
+        let addMode = false;
+        let selectedLocation = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            bindEventListeners();
+            drawMap();
+        });
+        
+        function initializeMap() {
+            canvas = document.getElementById('worldMap');
+            ctx = canvas.getContext('2d');
+            
+            // Rendre le canvas responsive
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+        
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const containerWidth = container.clientWidth - 40; // Marge
+            const aspectRatio = mapConfig.height / mapConfig.width;
+            
+            canvas.width = Math.min(containerWidth, mapConfig.width);
+            canvas.height = canvas.width * aspectRatio;
+            
+            drawMap();
+        }
+        
+        function bindEventListeners() {
+            // Événements de souris
+            canvas.addEventListener('mousedown', startDrag);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', endDrag);
+            canvas.addEventListener('wheel', handleZoom);
+            canvas.addEventListener('click', handleMapClick);
+            
+            // Filtres
+            document.getElementById('bookFilter').addEventListener('change', filterByBook);
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    filterByType(this.dataset.type);
+                });
+            });
+        }
+        
+        function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.scale(currentZoom, currentZoom);
+            ctx.translate(panX, panY);
+            
+            // Dessiner l'arrière-plan
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#e3f2fd');
+            gradient.addColorStop(0.5, '#bbdefb');
+            gradient.addColorStop(1, '#90caf9');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Dessiner une grille légère
+            drawGrid();
+            
+            // Dessiner les lieux
+            locations.forEach(location => {
+                drawLocation(location);
+            });
+            
+            ctx.restore();
+            
+            // Mettre à jour l'affichage du zoom
+            document.getElementById('zoomDisplay').textContent = Math.round(currentZoom * 100) + '%';
+        }
+        
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawLocation(location) {
+            const x = location.coordinates.x;
+            const y = location.coordinates.y;
+            
+            // Couleur selon le type
+            const colors = {
+                'ville': '#2196f3',
+                'château': '#9c27b0',
+                'forêt': '#4caf50',
+                'montagne': '#607d8b',
+                'autre': '#ff9800'
+            };
+            
+            const color = colors[location.type] || colors.autre;
+            
+            // Dessiner le marker
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 15, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Bordure
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Icône
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            const icons = {
+                'ville': '🏙️',
+                'château': '🏰',
+                'forêt': '🌲',
+                'montagne': '⛰️',
+                'autre': '📍'
+            };
+            
+            ctx.fillText(icons[location.type] || icons.autre, x, y);
+        }
+        
+        function startDrag(e) {
+            if (addMode) return;
+            
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            canvas.style.cursor = 'grabbing';
+        }
+        
+        function handleMouseMove(e) {
+            if (isDragging && !addMode) {
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+                
+                panX += deltaX / currentZoom;
+                panY += deltaY / currentZoom;
+                
+                drawMap();
+                
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            } else {
+                // Afficher tooltip si survol d'un lieu
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left) / currentZoom - panX;
+                const mouseY = (e.clientY - rect.top) / currentZoom - panY;
+                
+                const hoveredLocation = findLocationAt(mouseX, mouseY);
+                showTooltip(hoveredLocation, e.clientX, e.clientY);
+            }
+        }
+        
+        function endDrag() {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        }
+        
+        function handleZoom(e) {
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(mapConfig.zoom_min, Math.min(mapConfig.zoom_max, currentZoom * zoomFactor));
+            
+            if (newZoom !== currentZoom) {
+                // Zoomer vers la position de la souris
+                const worldX = (mouseX / currentZoom) - panX;
+                const worldY = (mouseY / currentZoom) - panY;
+                
+                currentZoom = newZoom;
+                
+                panX = (mouseX / currentZoom) - worldX;
+                panY = (mouseY / currentZoom) - worldY;
+                
+                drawMap();
+            }
+        }
+        
+        function handleMapClick(e) {
+            if (addMode) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / currentZoom - panX;
+                const y = (e.clientY - rect.top) / currentZoom - panY;
+                
+                document.getElementById('locationX').value = Math.round(x);
+                document.getElementById('locationY').value = Math.round(y);
+                
+                new bootstrap.Modal(document.getElementById('addLocationModal')).show();
+            } else {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = (e.clientX - rect.left) / currentZoom - panX;
+                const mouseY = (e.clientY - rect.top) / currentZoom - panY;
+                
+                const clickedLocation = findLocationAt(mouseX, mouseY);
+                if (clickedLocation) {
+                    selectLocation(clickedLocation.id);
+                }
+            }
+        }
+        
+        function findLocationAt(x, y) {
+            return locations.find(location => {
+                const dx = location.coordinates.x - x;
+                const dy = location.coordinates.y - y;
+                return Math.sqrt(dx * dx + dy * dy) <= 15;
+            });
+        }
+        
+        function showTooltip(location, clientX, clientY) {
+            const tooltip = document.getElementById('locationTooltip');
+            
+            if (location) {
+                tooltip.innerHTML = `<strong>${location.name}</strong><br>${location.type}<br>${location.description}`;
+                tooltip.style.left = clientX + 10 + 'px';
+                tooltip.style.top = clientY - 10 + 'px';
+                tooltip.classList.add('show');
+            } else {
+                tooltip.classList.remove('show');
+            }
+        }
+        
+        function selectLocation(locationId) {
+            selectedLocation = locationId;
+            
+            // Mettre à jour la sidebar
+            document.querySelectorAll('.location-list-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const selectedItem = document.querySelector(`[data-location-id="${locationId}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+        
+        function focusLocation(locationId) {
+            const location = locations.find(l => l.id === locationId);
+            if (location) {
+                // Centrer sur le lieu
+                panX = (canvas.width / 2) / currentZoom - location.coordinates.x;
+                panY = (canvas.height / 2) / currentZoom - location.coordinates.y;
+                
+                selectLocation(locationId);
+                drawMap();
+            }
+        }
+        
+        function zoomIn() {
+            currentZoom = Math.min(mapConfig.zoom_max, currentZoom * 1.2);
+            drawMap();
+        }
+        
+        function zoomOut() {
+            currentZoom = Math.max(mapConfig.zoom_min, currentZoom / 1.2);
+            drawMap();
+        }
+        
+        function resetView() {
+            currentZoom = mapConfig.default_zoom;
+            panX = 0;
+            panY = 0;
+            drawMap();
+        }
+        
+        function toggleAddMode() {
+            addMode = !addMode;
+            const btn = document.getElementById('addModeBtn');
+            
+            if (addMode) {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-warning');
+                btn.innerHTML = '<i class="bi bi-x"></i>';
+                btn.title = 'Annuler le mode ajout';
+                canvas.style.cursor = 'crosshair';
+            } else {
+                btn.classList.remove('btn-warning');
+                btn.classList.add('btn-success');
+                btn.innerHTML = '<i class="bi bi-plus"></i>';
+                btn.title = 'Mode ajout de lieu';
+                canvas.style.cursor = 'grab';
+            }
+        }
+        
+        function filterByBook(e) {
+            const bookId = e.target.value;
+            // Ici vous pourriez recharger la page avec le filtre
+            if (bookId) {
+                window.location.href = '{{ path('app_world_building_carte') }}/' + bookId;
+            } else {
+                window.location.href = '{{ path('app_world_building_carte') }}';
+            }
+        }
+        
+        function filterByType(type) {
+            // Filtrer visuellement les markers
+            drawMap();
+            // Vous pourriez implémenter une logique de filtrage plus complexe ici
+        }
+        
+        function saveLocation() {
+            const form = document.getElementById('addLocationForm');
+            const formData = new FormData();
+            
+            formData.append('nom', document.getElementById('locationName').value);
+            formData.append('type', document.getElementById('locationType').value);
+            formData.append('description', document.getElementById('locationDescription').value);
+            formData.append('coord_x', document.getElementById('locationX').value);
+            formData.append('coord_y', document.getElementById('locationY').value);
+            formData.append('livre_id', {{ livre_actuel ? livre_actuel.id : 1 }});
+            
+            fetch('{{ path('app_world_building_lieu_nouveau') }}', {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Erreur lors de la sauvegarde');
+                }
+            });
+        }
+    </script>
+{% endblock %} 

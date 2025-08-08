@@ -1,0 +1,247 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Chapitres de {{ livre.titre }} - Écriture de Livre{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item active">Chapitres</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-file-text me-2 text-primary"></i>
+            Chapitres de "{{ livre.titre }}"
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>Nouveau Chapitre
+            </a>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_livre_show', {id: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour au livre
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if chapitres|length > 0 %}
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-text-fill display-4 mb-2"></i>
+                    <h3>{{ chapitres|length }}</h3>
+                    <p class="mb-0">Chapitre{{ chapitres|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-fonts display-4 mb-2"></i>
+                    <h3>
+                        {% set totalMots = 0 %}
+                        {% for chapitre in chapitres %}
+                            {% set totalMots = totalMots + (chapitre.nombreMots|default(0)) %}
+                        {% endfor %}
+                        {{ totalMots }}
+                    </h3>
+                    <p class="mb-0">Mots au total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-fill display-4 mb-2"></i>
+                    <h3>{{ (totalMots / 200)|round }}min</h3>
+                    <p class="mb-0">Temps de lecture</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-bar-chart-fill display-4 mb-2"></i>
+                    <h3>{{ ((totalMots / 50000) * 100)|round }}%</h3>
+                    <p class="mb-0">Progression roman</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des chapitres -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-list-ol me-2"></i>
+                Liste des chapitres
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="chapitresTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="50">#</th>
+                            <th>Titre</th>
+                            <th width="100">Mots</th>
+                            <th width="150">Dernière modif.</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chapitre in chapitres %}
+                            <tr data-chapitre-id="{{ chapitre.id }}">
+                                <td>
+                                    <span class="badge bg-secondary">{{ chapitre.ordre|default(loop.index) }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-grip-vertical text-muted me-2" style="cursor: move;" title="Glisser pour réorganiser"></i>
+                                        <div>
+                                            <strong>{{ chapitre.titre }}</strong>
+                                            {% if chapitre.contenu|length > 0 %}
+                                                <br><small class="text-muted">
+                                                    {{ chapitre.contenu|striptags|slice(0, 80) ~ (chapitre.contenu|striptags|length > 80 ? '...' : '') }}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ chapitre.nombreMots|default(0) }}</span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ chapitre.dateModification is defined and chapitre.dateModification ? 
+                                           chapitre.dateModification|date('d/m/Y H:i') : 
+                                           (chapitre.dateCreation is defined ? chapitre.dateCreation|date('d/m/Y H:i') : 'N/A') }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ path('app_chapitre_edit', {id: chapitre.id}) }}" 
+                                           class="btn btn-primary" title="Écrire">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a href="{{ path('app_chapitre_show', {id: chapitre.id}) }}" 
+                                           class="btn btn-outline-secondary" title="Lire">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="confirmDelete({{ chapitre.id }}, '{{ chapitre.titre|e('js') }}')" 
+                                                title="Supprimer">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center">
+                    <h5>Commencer à écrire</h5>
+                    <p class="text-muted">Sélectionnez un chapitre pour commencer ou continuer l'écriture</p>
+                    {% if chapitres|length > 0 %}
+                        <a href="{{ path('app_chapitre_edit', {id: chapitres|first.id}) }}" class="btn btn-primary">
+                            <i class="bi bi-pencil-square me-2"></i>Écrire dans "{{ chapitres|first.titre }}"
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center">
+                    <h5>Ajouter un chapitre</h5>
+                    <p class="text-muted">Créez un nouveau chapitre pour continuer votre histoire</p>
+                    <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-2"></i>Nouveau chapitre
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- État vide -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-5">
+                    <i class="bi bi-file-text display-1 text-primary mb-4"></i>
+                    <h3 class="text-muted">Aucun chapitre pour le moment</h3>
+                    <p class="text-muted mb-4">
+                        Commencez à écrire votre livre en créant votre premier chapitre.<br>
+                        Vous pourrez organiser et réorganiser vos chapitres facilement.
+                    </p>
+                    <a href="{{ path('app_chapitre_new', {livreId: livre.id}) }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer le premier chapitre
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le chapitre <strong id="chapitreTitle"></strong> ?</p>
+                <p class="text-muted">Cette action est irréversible et tout le contenu du chapitre sera perdu.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function confirmDelete(chapitreId, chapitreTitle) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        const titleElement = document.getElementById('chapitreTitle');
+        
+        form.action = `/chapitre/${chapitreId}/supprimer`;
+        titleElement.textContent = chapitreTitle;
+        
+        modal.show();
+    }
+
+    // TODO: Implémenter le drag & drop pour réorganiser les chapitres
+    // Cette fonctionnalité sera ajoutée dans une prochaine version
+</script>
+{% endblock %} 

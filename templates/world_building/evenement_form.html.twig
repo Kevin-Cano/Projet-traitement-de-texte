@@ -1,0 +1,477 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ evenement ? 'Modifier' : 'Nouvel' }} événement - World Building{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <a href="{{ path('app_world_building_chronologie') }}" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Chronologie
+                </a>
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="bi bi-calendar-event me-2"></i>
+                        {{ evenement ? 'Modifier l\'événement' : 'Nouvel événement' }}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {{ evenement ? 'Modifiez les détails de cet événement' : 'Créez un nouvel événement pour votre chronologie' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                {% if evenement %}
+                    <button type="button" class="btn btn-outline-danger" onclick="confirmDelete()">
+                        <i class="bi bi-trash me-2"></i>Supprimer
+                    </button>
+                {% endif %}
+                <button type="button" class="btn btn-outline-primary dropdown-toggle {{ evenement ? 'dropdown-toggle-split' : '' }}" data-bs-toggle="dropdown">
+                    {% if not evenement %}<i class="bi bi-three-dots-vertical me-2"></i>{% endif %}
+                    <span class="visually-hidden">Options</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="previewEvent()">
+                        <i class="bi bi-eye me-2"></i>Aperçu
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="resetForm()">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Réinitialiser
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <form method="post" id="evenementForm" class="event-form">
+                <div class="row">
+                    <!-- Colonne principale -->
+                    <div class="col-lg-8">
+                        <!-- Informations générales -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-info-circle me-2"></i>Informations générales
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="nom" class="form-label">Nom de l'événement *</label>
+                                <input type="text" class="form-control form-control-lg" id="nom" name="nom" required
+                                       value="{{ evenement.nom|default('') }}" 
+                                       placeholder="Ex: Bataille de la Rivière Rouge, Couronnement du Roi...">
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="type" class="form-label">Type d'événement</label>
+                                        <select class="form-select" id="type" name="type">
+                                            <option value="">Sélectionnez un type</option>
+                                            {% for type in types_evenement %}
+                                                <option value="{{ type }}" {{ evenement and evenement.type == type ? 'selected' : '' }}>
+                                                    {{ type|title }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="importance" class="form-label">Importance</label>
+                                        <select class="form-select" id="importance" name="importance">
+                                            <option value="mineur" {{ evenement and evenement.importance == 'mineur' ? 'selected' : '' }}>Mineur</option>
+                                            <option value="modéré" {{ evenement and evenement.importance == 'modéré' ? 'selected' : '' }}>Modéré</option>
+                                            <option value="majeur" {{ evenement and evenement.importance == 'majeur' ? 'selected' : '' }}>Majeur</option>
+                                            <option value="critique" {{ evenement and evenement.importance == 'critique' ? 'selected' : '' }}>Critique</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Description</label>
+                                <textarea class="form-control" id="description" name="description" rows="4"
+                                          placeholder="Décrivez ce qui s'est passé lors de cet événement...">{{ evenement.description|default('') }}</textarea>
+                                <div class="character-count">
+                                    <span id="descCount">{{ evenement and evenement.description ? evenement.description|length : 0 }}</span>/1000 caractères
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contexte temporel -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-clock me-2"></i>Contexte temporel
+                            </h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                                            <label for="date" class="form-label">Date (format libre)</label>
+                    <input type="text" class="form-control" id="date" name="date"
+                           value="{{ evenement.date|default('') }}"
+                                               placeholder="Ex: 15 Mars de l'An 1245, Printemps 892...">
+                                        <small class="text-muted">Format libre pour s'adapter à votre univers</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                                            <label for="annee" class="form-label">Année (numérique)</label>
+                    <input type="number" class="form-control" id="annee" name="annee"
+                           value="{{ evenement.annee|default('') }}"
+                                               placeholder="1245">
+                                        <small class="text-muted">Pour le tri chronologique</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Causes et conséquences -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-arrow-left-right me-2"></i>Causes et conséquences
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="causes" class="form-label">Causes</label>
+                                                        <textarea class="form-control" id="causes" name="causes" rows="3"
+                                 placeholder="Qu'est-ce qui a mené à cet événement ?">{% if evenement.causes is defined %}{% if evenement.causes is iterable %}{{ evenement.causes|join('\n') }}{% else %}{{ evenement.causes }}{% endif %}{% endif %}</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="consequences" class="form-label">Conséquences</label>
+                                                        <textarea class="form-control" id="consequences" name="consequences" rows="3"
+                                 placeholder="Quelles ont été les répercussions de cet événement ?">{% if evenement.consequences is defined %}{% if evenement.consequences is iterable %}{{ evenement.consequences|join('\n') }}{% else %}{{ evenement.consequences }}{% endif %}{% endif %}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Participants -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-people me-2"></i>Participants
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="protagonistes" class="form-label">Protagonistes</label>
+                                <input type="text" class="form-control" id="protagonistes" name="protagonistes"
+                                       value="{{ evenement and evenement.protagonistes ? evenement.protagonistes|join(', ') : '' }}"
+                                       placeholder="Noms des acteurs principaux (séparés par des virgules)">
+                                <small class="text-muted">Ex: Roi Arthur, Général Lancelot, Dame Morgane</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="temoin" class="form-label">Témoins</label>
+                                <input type="text" class="form-control" id="temoin" name="temoin"
+                                       value="{{ evenement and evenement.temoin ? evenement.temoin|join(', ') : '' }}"
+                                       placeholder="Témoins ou chroniqueurs (séparés par des virgules)">
+                                <small class="text-muted">Ex: Chroniqueur Royal, Barde Errant</small>
+                            </div>
+                        </div>
+
+                        <!-- Notes et secrets -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-journal-text me-2"></i>Notes complémentaires
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="4"
+                                          placeholder="Notes personnelles, détails supplémentaires, liens avec d'autres événements...">{{ evenement.notes|default('') }}</textarea>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="secret" name="secret" 
+                                       {{ evenement and evenement.secret ? 'checked' : '' }}>
+                                <label class="form-check-label" for="secret">
+                                    <i class="bi bi-eye-slash me-1"></i>Événement secret
+                                </label>
+                                <small class="text-muted d-block">Cochez si cet événement doit rester confidentiel dans votre univers</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne latérale -->
+                    <div class="col-lg-4">
+                        <!-- Relations -->
+                        <div class="form-section mb-4">
+                            <h5 class="section-title">
+                                <i class="bi bi-link-45deg me-2"></i>Relations
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="livre_id" class="form-label">Livre/Univers</label>
+                                <select class="form-select" id="livre_id" name="livre_id">
+                                    <option value="">Aucun livre spécifique</option>
+                                    {% for livre in livres %}
+                                        <option value="{{ livre.id }}" {{ evenement and evenement.livre_id == livre.id ? 'selected' : '' }}>
+                                            {{ livre.titre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="lieu_id" class="form-label">Lieu</label>
+                                <select class="form-select" id="lieu_id" name="lieu_id">
+                                    <option value="">Aucun lieu spécifique</option>
+                                    {% for lieu in lieux %}
+                                        <option value="{{ lieu.id }}" {{ evenement and evenement.lieu_id == lieu.id ? 'selected' : '' }}>
+                                            {{ lieu.nom }} ({{ lieu.type|default('lieu') }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Aperçu de l'événement -->
+                        <div class="event-preview" id="eventPreview">
+                            <h6><i class="bi bi-eye me-2"></i>Aperçu</h6>
+                            <div class="preview-content">
+                                <div class="preview-item">
+                                    <strong id="previewName">{{ evenement.nom|default('Nom de l\'événement') }}</strong>
+                                </div>
+                                <div class="preview-item">
+                                    <small class="text-muted" id="previewType">
+                                        {{ evenement.type|default('Type') }} - {{ evenement.importance|default('Importance') }}
+                                    </small>
+                                </div>
+                                <div class="preview-item">
+                                    <small id="previewDate">{{ evenement.date|default('Date') }}</small>
+                                </div>
+                                <div class="preview-item">
+                                    <small id="previewDesc">{{ evenement.description|default('Description')|slice(0, 100) }}...</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-lg w-100 mb-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {{ evenement ? 'Mettre à jour' : 'Créer l\'événement' }}
+                            </button>
+                            <a href="{{ path('app_world_building_chronologie') }}" class="btn btn-outline-secondary w-100">
+                                Annuler
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.event-form {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.form-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    border-left: 4px solid #007bff;
+}
+
+.section-title {
+    color: #495057;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.character-count {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.event-preview {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+
+.preview-content {
+    margin-top: 1rem;
+}
+
+.preview-item {
+    margin-bottom: 0.5rem;
+}
+
+.form-actions {
+    position: sticky;
+    top: 2rem;
+}
+
+@media (max-width: 992px) {
+    .form-actions {
+        position: static;
+        margin-top: 2rem;
+    }
+    
+    .event-preview {
+        margin-bottom: 2rem;
+    }
+}
+
+/* Animation pour les champs modifiés */
+.form-control.modified {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    transition: all 0.3s ease;
+}
+
+.form-select.modified {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    transition: all 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Mise à jour de l'aperçu en temps réel
+        function updatePreview() {
+            const nom = document.getElementById('nom').value || 'Nom de l\'événement';
+            const type = document.getElementById('type').value || 'Type';
+            const importance = document.getElementById('importance').value || 'Importance';
+            const date = document.getElementById('date').value || 'Date';
+            const description = document.getElementById('description').value || 'Description';
+            
+            document.getElementById('previewName').textContent = nom;
+            document.getElementById('previewType').textContent = type + ' - ' + importance;
+            document.getElementById('previewDate').textContent = date;
+            document.getElementById('previewDesc').textContent = description.substring(0, 100) + (description.length > 100 ? '...' : '');
+        }
+
+        // Compteur de caractères
+        function updateCharCount() {
+            const textarea = document.getElementById('description');
+            const count = document.getElementById('descCount');
+            count.textContent = textarea.value.length;
+            
+            if (textarea.value.length > 1000) {
+                count.style.color = '#dc3545';
+            } else if (textarea.value.length > 800) {
+                count.style.color = '#fd7e14';
+            } else {
+                count.style.color = '#6c757d';
+            }
+        }
+
+        // Aperçu de l'événement
+        function previewEvent() {
+            const eventData = {
+                nom: document.getElementById('nom').value,
+                type: document.getElementById('type').value,
+                importance: document.getElementById('importance').value,
+                date: document.getElementById('date').value,
+                description: document.getElementById('description').value
+            };
+            
+            const previewWindow = window.open('', '_blank', 'width=600,height=400');
+            previewWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Aperçu - ${eventData.nom}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; }
+                            .event-title { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+                            .event-meta { color: #6c757d; margin: 10px 0; }
+                            .event-description { line-height: 1.6; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1 class="event-title">${eventData.nom}</h1>
+                        <div class="event-meta">
+                            <strong>Type:</strong> ${eventData.type} | 
+                            <strong>Importance:</strong> ${eventData.importance} | 
+                            <strong>Date:</strong> ${eventData.date}
+                        </div>
+                        <div class="event-description">
+                            <h3>Description</h3>
+                            <p>${eventData.description}</p>
+                        </div>
+                    </body>
+                </html>
+            `);
+        }
+
+        // Réinitialiser le formulaire
+        function resetForm() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ? Tous les changements non sauvegardés seront perdus.')) {
+                document.getElementById('evenementForm').reset();
+                updatePreview();
+                updateCharCount();
+            }
+        }
+
+        {% if evenement %}
+        // Supprimer l'événement
+        function confirmDelete() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?\n\nCette action est irréversible.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ path("app_world_building_evenement_delete", {id: evenement.id}) }}';
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        {% endif %}
+
+        // Validation du formulaire
+        document.getElementById('evenementForm').addEventListener('submit', function(e) {
+            const nom = document.getElementById('nom').value.trim();
+            
+            if (!nom) {
+                e.preventDefault();
+                alert('Le nom de l\'événement est obligatoire.');
+                document.getElementById('nom').focus();
+                return;
+            }
+        });
+
+        // Marquer les champs modifiés
+        function markAsModified(element) {
+            element.classList.add('modified');
+            setTimeout(() => element.classList.remove('modified'), 2000);
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Écouteurs pour la mise à jour en temps réel
+            ['nom', 'type', 'importance', 'date', 'description'].forEach(id => {
+                const element = document.getElementById(id);
+                element.addEventListener('input', function() {
+                    updatePreview();
+                    markAsModified(this);
+                });
+            });
+
+            // Compteur de caractères
+            document.getElementById('description').addEventListener('input', updateCharCount);
+
+            // Mise à jour initiale
+            updatePreview();
+            updateCharCount();
+
+            // Focus sur le premier champ
+            document.getElementById('nom').focus();
+        });
+    </script>
+{% endblock %} 

@@ -1,0 +1,684 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Lexique - World Building{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                <a href="{{ path('app_world_building_index') }}" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> World Building
+                </a>
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="bi bi-book me-2"></i>Lexique & Terminologie
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {% if livre_actuel %}
+                            Termes et définitions - {{ livre_actuel.titre }}
+                        {% else %}
+                            Dictionnaire de votre univers
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" onclick="showNewTermModal()">
+                    <i class="bi bi-plus-circle me-2"></i>Nouveau terme
+                </button>
+                <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown">
+                    <span class="visually-hidden">Options</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="exportLexique()">
+                        <i class="bi bi-download me-2"></i>Exporter
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="printLexique()">
+                        <i class="bi bi-printer me-2"></i>Imprimer
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="showHelpModal()">
+                        <i class="bi bi-question-circle me-2"></i>Raccourcis clavier
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchTerm" 
+                                       placeholder="Rechercher un terme..." onkeyup="filterTerms()">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="bookFilter" onchange="filterByBook()">
+                                <option value="">Tous les livres</option>
+                                {% for livre in livres %}
+                                    <option value="{{ livre.id }}" {{ livre_actuel and livre_actuel.id == livre.id ? 'selected' : '' }}>
+                                        {{ livre.titre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="categoryFilter" onchange="filterByCategory()">
+                                <option value="">Toutes les catégories</option>
+                                {% for categorie in categories|keys %}
+                                    <option value="{{ categorie }}">{{ categorie|title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="lexique-stats">
+                <div class="stat-item">
+                    <div class="stat-number">{{ categories|length }}</div>
+                    <small class="text-muted">Catégories</small>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">
+                        {% set total_terms = 0 %}
+                        {% for cat_terms in categories %}
+                            {% set total_terms = total_terms + cat_terms|length %}
+                        {% endfor %}
+                        {{ total_terms }}
+                    </div>
+                    <small class="text-muted">Termes</small>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ livres|length }}</div>
+                    <small class="text-muted">Univers</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lexique -->
+    <div class="row">
+        <div class="col-12">
+            {% if categories is empty %}
+                <!-- État vide -->
+                <div class="text-center py-5">
+                    <div class="empty-state">
+                        <i class="bi bi-book display-1 text-muted mb-3"></i>
+                        <h4>Aucun terme dans le lexique</h4>
+                        <p class="text-muted mb-4">Commencez à enrichir votre univers en ajoutant des termes et définitions.</p>
+                        <button type="button" class="btn btn-primary" onclick="showNewTermModal()">
+                            <i class="bi bi-plus-circle me-2"></i>Créer le premier terme
+                        </button>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Liste des catégories -->
+                {% for categorie, termes in categories %}
+                    <div class="lexique-category mb-4" data-category="{{ categorie }}">
+                        <div class="category-header">
+                            <h5 class="category-title">
+                                <i class="bi bi-tag-fill me-2"></i>{{ categorie|title }}
+                                <span class="badge bg-primary ms-2">{{ termes|length }}</span>
+                            </h5>
+                        </div>
+                        
+                        <div class="row">
+                            {% for terme in termes %}
+                                <div class="col-lg-6 col-xl-4 mb-3" data-term="{{ terme.terme|lower }}">
+                                    <div class="terme-card">
+                                        <div class="terme-header">
+                                            <h6 class="terme-title">{{ terme.terme }}</h6>
+                                            <div class="terme-actions">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                        <i class="bi bi-three-dots"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li><a class="dropdown-item" href="#" onclick="editTerm({{ terme.id }})">
+                                                            <i class="bi bi-pencil me-2"></i>Modifier
+                                                        </a></li>
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteTerm({{ terme.id }})">
+                                                            <i class="bi bi-trash me-2"></i>Supprimer
+                                                        </a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="terme-definition">
+                                            {{ terme.definition }}
+                                        </div>
+                                        
+                                        <div class="terme-meta">
+                                            <small class="text-muted">
+                                                <i class="bi bi-bookmark-fill me-1"></i>{{ terme.categorie|default('général')|title }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour nouveau terme -->
+<div class="modal fade" id="newTermModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouveau terme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{{ path('app_world_building_terme_nouveau') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="terme" class="form-label">Terme *</label>
+                        <input type="text" class="form-control" id="terme" name="terme" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="definition" class="form-label">Définition *</label>
+                        <textarea class="form-control" id="definition" name="definition" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categorie" class="form-label">Catégorie</label>
+                        <input type="text" class="form-control" id="categorie" name="categorie" 
+                               value="général" placeholder="Ex: magie, géographie, personnages...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="livre_id" class="form-label">Livre</label>
+                        <select class="form-select" id="livre_id" name="livre_id">
+                            <option value="">Aucun livre spécifique</option>
+                            {% for livre in livres %}
+                                <option value="{{ livre.id }}" {{ livre_actuel and livre_actuel.id == livre.id ? 'selected' : '' }}>
+                                    {{ livre.titre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer le terme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour éditer un terme -->
+<div class="modal fade" id="editTermModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le terme</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" id="editTermForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_terme" class="form-label">Terme *</label>
+                        <input type="text" class="form-control" id="edit_terme" name="terme" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_definition" class="form-label">Définition *</label>
+                        <textarea class="form-control" id="edit_definition" name="definition" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_categorie" class="form-label">Catégorie</label>
+                        <input type="text" class="form-control" id="edit_categorie" name="categorie" 
+                               placeholder="Ex: magie, géographie, personnages...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_livre_id" class="form-label">Livre</label>
+                        <select class="form-select" id="edit_livre_id" name="livre_id">
+                            <option value="">Aucun livre spécifique</option>
+                            {% for livre in livres %}
+                                <option value="{{ livre.id }}">{{ livre.titre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier le terme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'aide -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-keyboard me-2"></i>Raccourcis clavier
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="fw-bold">Actions principales</h6>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Ctrl</kbd> + <kbd class="kb-key">N</kbd>
+                                <span class="shortcut-desc">Nouveau terme</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Échap</kbd>
+                                <span class="shortcut-desc">Fermer les modals</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Ctrl</kbd> + <kbd class="kb-key">P</kbd>
+                                <span class="shortcut-desc">Imprimer</span>
+                            </div>
+                        </div>
+                        
+                        <h6 class="fw-bold mt-4">Navigation</h6>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Tab</kbd>
+                                <span class="shortcut-desc">Navigation entre champs</span>
+                            </div>
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Entrée</kbd>
+                                <span class="shortcut-desc">Valider formulaire</span>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold mt-4">Recherche</h6>
+                        <div class="shortcut-list">
+                            <div class="shortcut-item">
+                                <kbd class="kb-key">Ctrl</kbd> + <kbd class="kb-key">F</kbd>
+                                <span class="shortcut-desc">Recherche dans la page</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.lexique-stats {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+}
+
+.lexique-category {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border-left: 4px solid #007bff;
+}
+
+.category-header {
+    margin-bottom: 1rem;
+}
+
+.category-title {
+    color: #495057;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.terme-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.terme-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.terme-card.editing {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+}
+
+.terme-card.deleting {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.terme-header {
+    display: flex;
+    justify-content: between;
+    align-items: start;
+    margin-bottom: 0.5rem;
+}
+
+.terme-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+    flex: 1;
+}
+
+.terme-actions {
+    margin-left: auto;
+}
+
+.terme-definition {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.terme-meta {
+    border-top: 1px solid #f1f3f4;
+    padding-top: 0.5rem;
+}
+
+.empty-state {
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+/* Styles pour les raccourcis clavier */
+.shortcut-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.kb-key {
+    background: #e9ecef;
+    border: 1px solid #adb5bd;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.shortcut-desc {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .lexique-stats {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .col-lg-6 {
+        padding: 0 0.5rem;
+    }
+    
+    .shortcut-item {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Données des termes pour JavaScript
+        const termesData = {
+            {% for categorie, termes in categories %}
+                {% for terme in termes %}
+                    {{ terme.id }}: {
+                        id: {{ terme.id }},
+                        terme: "{{ terme.terme|escape('js') }}",
+                        definition: "{{ terme.definition|escape('js') }}",
+                        categorie: "{{ terme.categorie|default('général')|escape('js') }}",
+                        livre_id: {{ terme.livre_id|default('null') }}
+                    },
+                {% endfor %}
+            {% endfor %}
+        };
+
+        function showNewTermModal() {
+            const modal = new bootstrap.Modal(document.getElementById('newTermModal'));
+            modal.show();
+        }
+
+        function filterTerms() {
+            const searchTerm = document.getElementById('searchTerm').value.toLowerCase();
+            const termes = document.querySelectorAll('[data-term]');
+            
+            termes.forEach(terme => {
+                const termText = terme.getAttribute('data-term');
+                const termContent = terme.textContent.toLowerCase();
+                
+                if (termText.includes(searchTerm) || termContent.includes(searchTerm)) {
+                    terme.style.display = 'block';
+                } else {
+                    terme.style.display = 'none';
+                }
+            });
+            
+            updateCategoryVisibility();
+        }
+
+        function filterByCategory() {
+            const selectedCategory = document.getElementById('categoryFilter').value;
+            const categories = document.querySelectorAll('.lexique-category');
+            
+            categories.forEach(category => {
+                if (!selectedCategory || category.getAttribute('data-category') === selectedCategory) {
+                    category.style.display = 'block';
+                } else {
+                    category.style.display = 'none';
+                }
+            });
+        }
+
+        function filterByBook() {
+            const bookId = document.getElementById('bookFilter').value;
+            if (bookId) {
+                window.location.href = '{{ path("app_world_building_lexique") }}/' + bookId;
+            } else {
+                window.location.href = '{{ path("app_world_building_lexique") }}';
+            }
+        }
+
+        function updateCategoryVisibility() {
+            const categories = document.querySelectorAll('.lexique-category');
+            
+            categories.forEach(category => {
+                const visibleTerms = category.querySelectorAll('[data-term]:not([style*="display: none"])');
+                if (visibleTerms.length === 0) {
+                    category.style.display = 'none';
+                } else {
+                    category.style.display = 'block';
+                }
+            });
+        }
+
+        function editTerm(termId) {
+            const terme = termesData[termId];
+            if (!terme) {
+                alert('Terme introuvable');
+                return;
+            }
+
+            // Marquer visuellement le terme en cours d'édition
+            const termeCard = document.querySelector(`[data-term*="${terme.terme.toLowerCase()}"]`);
+            if (termeCard) {
+                termeCard.querySelector('.terme-card').classList.add('editing');
+            }
+
+            // Remplir le formulaire d'édition
+            document.getElementById('edit_terme').value = terme.terme;
+            document.getElementById('edit_definition').value = terme.definition;
+            document.getElementById('edit_categorie').value = terme.categorie;
+            document.getElementById('edit_livre_id').value = terme.livre_id || '';
+
+            // Définir l'action du formulaire
+            document.getElementById('editTermForm').action = '/world-building/terme/' + termId + '/edit';
+
+            // Afficher le modal
+            const modal = new bootstrap.Modal(document.getElementById('editTermModal'));
+            modal.show();
+
+            // Retirer la classe editing quand le modal se ferme
+            const editModal = document.getElementById('editTermModal');
+            const hideHandler = function() {
+                if (termeCard) {
+                    termeCard.querySelector('.terme-card').classList.remove('editing');
+                }
+                editModal.removeEventListener('hidden.bs.modal', hideHandler);
+            };
+            editModal.addEventListener('hidden.bs.modal', hideHandler);
+        }
+
+        function deleteTerm(termId) {
+            const terme = termesData[termId];
+            if (!terme) {
+                alert('Terme introuvable');
+                return;
+            }
+
+            const confirmMessage = `Êtes-vous sûr de vouloir supprimer le terme "${terme.terme}" ?\n\nDéfinition : ${terme.definition.substring(0, 100)}${terme.definition.length > 100 ? '...' : ''}\n\nCette action est irréversible.`;
+            
+            if (confirm(confirmMessage)) {
+                // Marquer visuellement le terme en cours de suppression
+                const termeCard = document.querySelector(`[data-term*="${terme.terme.toLowerCase()}"]`);
+                if (termeCard) {
+                    termeCard.querySelector('.terme-card').classList.add('deleting');
+                }
+
+                // Créer un formulaire temporaire pour la requête POST
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/world-building/terme/' + termId + '/delete';
+                
+                // Ajouter au DOM et soumettre
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function exportLexique() {
+            // TODO: Implémenter l'export
+            alert('Export en cours de développement');
+        }
+
+        function printLexique() {
+            window.print();
+        }
+
+        function showHelpModal() {
+            const modal = new bootstrap.Modal(document.getElementById('helpModal'));
+            modal.show();
+        }
+
+        // Gestion des formulaires
+        function resetNewTermForm() {
+            document.getElementById('terme').value = '';
+            document.getElementById('definition').value = '';
+            document.getElementById('categorie').value = 'général';
+            document.getElementById('livre_id').value = '{{ livre_actuel ? livre_actuel.id : "" }}';
+        }
+
+        // Animation d'apparition
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.terme-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 50);
+            });
+
+            // Réinitialiser le formulaire de nouveau terme quand le modal se ferme
+            const newTermModal = document.getElementById('newTermModal');
+            newTermModal.addEventListener('hidden.bs.modal', function () {
+                resetNewTermForm();
+            });
+
+            // Ajouter des raccourcis clavier
+            document.addEventListener('keydown', function(e) {
+                // Échap pour fermer les modals
+                if (e.key === 'Escape') {
+                    const openModals = document.querySelectorAll('.modal.show');
+                    openModals.forEach(modal => {
+                        bootstrap.Modal.getInstance(modal)?.hide();
+                    });
+                }
+                
+                // Ctrl+N pour nouveau terme
+                if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                    e.preventDefault();
+                    showNewTermModal();
+                }
+                
+                // Ctrl+P pour imprimer
+                if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                    e.preventDefault();
+                    printLexique();
+                }
+            });
+        });
+    </script>
+{% endblock %} 

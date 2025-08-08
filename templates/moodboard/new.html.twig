@@ -1,0 +1,203 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Moodboard - {{ livre.titre }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}">Moodboards</a></li>
+                <li class="breadcrumb-item active">Nouveau moodboard</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-plus-circle me-2 text-info"></i>
+            Nouveau Moodboard
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour aux moodboards
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-images me-2"></i>
+                    Créer un espace visuel
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-4">
+                        <label for="nom" class="form-label">Nom du moodboard *</label>
+                        <input type="text" class="form-control form-control-lg" id="nom" name="nom" 
+                               value="{{ moodboard.nom ?? '' }}" required
+                               placeholder="Ex: Château de Poudlard, Personnage principal, Ambiance sombre...">
+                        <div class="form-text">Donnez un nom évocateur à votre collection d'images</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="type" class="form-label">Type de moodboard</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="general" {{ (moodboard.type ?? 'general') == 'general' ? 'selected' : '' }}>Général</option>
+                            <option value="lieu" {{ (moodboard.type ?? '') == 'lieu' ? 'selected' : '' }}>Lieu / Décor</option>
+                            <option value="personnage" {{ (moodboard.type ?? '') == 'personnage' ? 'selected' : '' }}>Personnage</option>
+                            <option value="ambiance" {{ (moodboard.type ?? '') == 'ambiance' ? 'selected' : '' }}>Ambiance / Mood</option>
+                            <option value="scene" {{ (moodboard.type ?? '') == 'scene' ? 'selected' : '' }}>Scène spécifique</option>
+                            <option value="concept" {{ (moodboard.type ?? '') == 'concept' ? 'selected' : '' }}>Concept / Idée</option>
+                        </select>
+                        <div class="form-text">Catégorisez votre moodboard pour mieux l'organiser</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Décrivez l'objectif de ce moodboard...">{{ moodboard.description ?? '' }}</textarea>
+                        <div class="form-text">Expliquez ce que ce moodboard représente dans votre histoire</div>
+                    </div>
+
+                    <!-- Aperçu des types -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-3">Exemples d'utilisation :</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="card border-0 bg-light h-100">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-geo-alt-fill text-primary display-6 mb-2"></i>
+                                            <h6 class="card-title">Lieux</h6>
+                                            <small class="text-muted">Châteaux, forêts, villes futuristes...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-0 bg-light h-100">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-person-fill text-success display-6 mb-2"></i>
+                                            <h6 class="card-title">Personnages</h6>
+                                            <small class="text-muted">Apparence, vêtements, expressions...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-0 bg-light h-100">
+                                        <div class="card-body text-center py-3">
+                                            <i class="bi bi-palette-fill text-warning display-6 mb-2"></i>
+                                            <h6 class="card-title">Ambiances</h6>
+                                            <small class="text-muted">Couleurs, textures, atmosphères...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Annuler
+                        </a>
+                        
+                        <button type="submit" class="btn btn-info btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>Créer le moodboard
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Conseils -->
+        <div class="card mt-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="text-info mb-3">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Conseils pour un bon moodboard
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Restez cohérent</strong> : gardez une unité visuelle
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Variez les types</strong> : mix de photos, illustrations, textures
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Qualité > quantité</strong> : préférez moins d'images mais plus pertinentes
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Pensez émotions</strong> : quelle sensation voulez-vous transmettre ?
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Organisez par thème</strong> : créez plusieurs moodboards spécialisés
+                            </li>
+                            <li class="mb-2">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Inspirez-vous</strong> : utilisez Pinterest, films, art...
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .card {
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border: none;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #17a2b8;
+        box-shadow: 0 0 0 0.2rem rgba(23, 162, 184, 0.25);
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+    }
+
+    .btn-info:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+        transform: translateY(-1px);
+    }
+
+    .card-header.bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .text-info {
+        color: #17a2b8 !important;
+    }
+
+    /* Animation des cartes d'exemple */
+    .bg-light .card-body:hover {
+        background-color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %} 

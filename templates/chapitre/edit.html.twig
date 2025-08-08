@@ -1,0 +1,931 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ chapitre.titre }} - Écriture{% endblock %}
+
+{% block body %}
+<!-- Interface d'écriture plein écran -->
+<div class="writing-interface">
+    <!-- Header fixe -->
+    <div class="writing-header">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center py-2">
+                <div class="d-flex align-items-center">
+                    <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-sm btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Chapitres
+                    </a>
+                    <div>
+                        <h6 class="mb-0">{{ livre.titre }}</h6>
+                        <small class="text-muted">{{ chapitre.titre }}</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Indicateur de sauvegarde -->
+                    <div class="me-3">
+                        <span id="saveStatus" class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Sauvegardé
+                        </span>
+                    </div>
+                    
+                    <!-- Statistiques -->
+                    <div class="me-3 text-muted small">
+                        <span id="wordCount">{{ chapitre.nombreMots|default(0) }}</span> mots •
+                        <span id="charCount">0</span> caractères
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" onclick="saveChapter()" title="Sauvegarder">
+                            <i class="bi bi-save"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Options">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ path('app_chapitre_show', {id: chapitre.id}) }}">
+                                <i class="bi bi-eye me-2"></i>Mode lecture
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleFullscreen()">
+                                <i class="bi bi-arrows-fullscreen me-2"></i>Plein écran
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleFocusMode()">
+                                <i class="bi bi-bullseye me-2"></i>Mode focus
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleDarkMode()">
+                                <i class="bi bi-moon me-2"></i>Thème sombre
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="toggleSpellCheck()">
+                                <i class="bi bi-spellcheck me-2"></i>Vérification orthographique
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="openSearch()">
+                                <i class="bi bi-search me-2"></i>Rechercher (Ctrl+F)
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="showEditorSettings()">
+                                <i class="bi bi-sliders me-2"></i>Paramètres de l'éditeur
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="showChapterSettings()">
+                                <i class="bi bi-gear me-2"></i>Paramètres du chapitre
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zone d'écriture -->
+    <div class="writing-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-8 col-lg-10">
+                    <form method="post" id="chapterForm">
+                        <!-- Titre du chapitre (masqué en mode écriture) -->
+                        <div class="mb-4" id="titleSection">
+                            <input type="text" class="form-control form-control-lg border-0 shadow-none" 
+                                   id="titre" name="titre" value="{{ chapitre.titre }}" 
+                                   placeholder="Titre du chapitre..."
+                                   style="font-size: 1.8rem; font-weight: 300;">
+                        </div>
+
+                        <!-- Éditeur de texte principal -->
+                        <div class="writing-area">
+                            <textarea class="form-control writing-textarea" 
+                                      id="contenu" name="contenu" 
+                                      placeholder="Commencez à écrire votre histoire..."
+                                      style="min-height: 70vh; border: none; outline: none; resize: vertical; font-size: 1.1rem; line-height: 1.8;">{{ chapitre.contenu|raw }}</textarea>
+                        </div>
+
+                        <!-- Barre d'outils flottante -->
+                        <div class="writing-toolbar" id="writingToolbar">
+                            <div class="btn-group btn-group-sm me-2">
+                                <button type="button" class="btn btn-outline-primary" onclick="formatText('bold')" title="Gras (Ctrl+B)">
+                                    <i class="bi bi-type-bold"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="formatText('italic')" title="Italique (Ctrl+I)">
+                                    <i class="bi bi-type-italic"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="formatText('underline')" title="Souligné (Ctrl+U)">
+                                    <i class="bi bi-type-underline"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="btn-group btn-group-sm me-2">
+                                <button type="button" class="btn btn-outline-secondary" onclick="insertText('\n\n---\n\n')" title="Séparateur">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="insertDialogue()" title="Dialogue">
+                                    <i class="bi bi-chat-quote"></i>
+                                </button>
+                            </div>
+
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-info" onclick="insertText('\n\n')" title="Nouveau paragraphe">
+                                    <i class="bi bi-paragraph"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bouton de sortie du mode focus (visible seulement en mode focus) -->
+    <div class="focus-mode-exit" id="focusModeExit" style="display: none;">
+        <button type="button" class="btn btn-dark btn-sm" onclick="toggleFocusMode()" title="Sortir du mode focus (Échap)">
+            <i class="bi bi-x-lg me-2"></i>Sortir du focus
+        </button>
+    </div>
+</div>
+
+<!-- Modal des paramètres du chapitre -->
+<div class="modal fade" id="chapterSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Paramètres du chapitre</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Titre du chapitre</label>
+                    <input type="text" class="form-control" id="modalTitre" value="{{ chapitre.titre }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ordre</label>
+                    <input type="number" class="form-control" id="modalOrdre" value="{{ chapitre.ordre|default(1) }}" min="1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Statistiques</label>
+                    <div class="row">
+                        <div class="col-4">
+                            <div class="text-center">
+                                <strong id="statsWords">{{ chapitre.nombreMots|default(0) }}</strong>
+                                <br><small class="text-muted">Mots</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center">
+                                <strong id="statsChars">0</strong>
+                                <br><small class="text-muted">Caractères</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="text-center">
+                                <strong id="statsReadTime">{{ ((chapitre.nombreMots|default(0)) / 200)|round }}min</strong>
+                                <br><small class="text-muted">Lecture</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary" onclick="saveChapterSettings()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des paramètres de l'éditeur -->
+<div class="modal fade" id="editorSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Paramètres de l'éditeur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Taille de police</label>
+                    <select class="form-select" id="fontSize" onchange="changeFontSize()">
+                        <option value="0.9rem">Petite</option>
+                        <option value="1.1rem" selected>Normale</option>
+                        <option value="1.3rem">Grande</option>
+                        <option value="1.5rem">Très grande</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Police d'écriture</label>
+                    <select class="form-select" id="fontFamily" onchange="changeFontFamily()">
+                        <option value="Georgia, serif" selected>Georgia (Serif)</option>
+                        <option value="'Times New Roman', serif">Times New Roman</option>
+                        <option value="'Arial', sans-serif">Arial (Sans-serif)</option>
+                        <option value="'Helvetica', sans-serif">Helvetica</option>
+                        <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Interligne</label>
+                    <select class="form-select" id="lineHeight" onchange="changeLineHeight()">
+                        <option value="1.4">Compact</option>
+                        <option value="1.6">Normal</option>
+                        <option value="1.8" selected>Confortable</option>
+                        <option value="2.0">Large</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="showLineNumbers" onchange="toggleLineNumbers()">
+                        <label class="form-check-label" for="showLineNumbers">
+                            Afficher les numéros de ligne
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="wordWrap" checked onchange="toggleWordWrap()">
+                        <label class="form-check-label" for="wordWrap">
+                            Retour à la ligne automatique
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" class="btn btn-primary" onclick="resetEditorSettings()">Réinitialiser</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .writing-interface {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .writing-header {
+        background: #fff;
+        border-bottom: 1px solid #dee2e6;
+        z-index: 1000;
+        flex-shrink: 0;
+    }
+
+    .writing-content {
+        flex: 1;
+        padding: 2rem 0;
+        background: #f8f9fa;
+        overflow-y: auto;
+    }
+
+    .writing-textarea {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        font-family: 'Georgia', serif;
+    }
+
+    .writing-textarea:focus {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        border-color: #0d6efd;
+    }
+
+    .writing-toolbar {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 8px 12px;
+        border-radius: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        border: 1px solid #dee2e6;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .writing-toolbar.show {
+        opacity: 1;
+    }
+
+    .writing-area:focus-within .writing-toolbar {
+        opacity: 1;
+    }
+
+    /* Mode plein écran */
+    .fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: white;
+    }
+
+    /* Animation du statut de sauvegarde */
+    .save-animation {
+        animation: pulse 0.5s ease-in-out;
+    }
+
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    /* Thème sombre */
+    body.dark-mode {
+        background: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .writing-header {
+        background: #2d2d2d;
+        border-bottom-color: #404040;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .writing-content {
+        background: #1a1a1a;
+    }
+
+    body.dark-mode .writing-textarea {
+        background: #2d2d2d;
+        color: #e0e0e0;
+        border-color: #404040;
+    }
+
+    body.dark-mode .writing-textarea:focus {
+        background: #2d2d2d;
+        box-shadow: 0 4px 20px rgba(255,255,255,0.1);
+    }
+
+    body.dark-mode .writing-toolbar {
+        background: #2d2d2d;
+        border-color: #404040;
+    }
+
+    body.dark-mode .btn-outline-primary {
+        color: #4dabf7;
+        border-color: #4dabf7;
+    }
+
+    body.dark-mode .btn-outline-primary:hover {
+        background: #4dabf7;
+        color: #1a1a1a;
+    }
+
+    body.dark-mode .btn-outline-secondary {
+        color: #adb5bd;
+        border-color: #6c757d;
+    }
+
+    body.dark-mode .btn-outline-secondary:hover {
+        background: #6c757d;
+        color: #fff;
+    }
+
+    body.dark-mode .modal-content {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .modal-header {
+        border-bottom-color: #404040;
+    }
+
+    body.dark-mode .modal-footer {
+        border-top-color: #404040;
+    }
+
+    body.dark-mode .form-control {
+        background: #1a1a1a;
+        border-color: #404040;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .form-control:focus {
+        background: #1a1a1a;
+        border-color: #4dabf7;
+        color: #e0e0e0;
+        box-shadow: 0 0 0 0.2rem rgba(77, 171, 247, 0.25);
+    }
+
+    /* Mode focus */
+    .writing-interface.focus-mode .writing-content {
+        padding-top: 0;
+    }
+
+    .writing-interface.focus-mode .writing-textarea {
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    /* Bouton de sortie du mode focus */
+    .focus-mode-exit {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+
+    .focus-mode-exit:hover {
+        opacity: 1;
+    }
+
+    .focus-mode-exit .btn {
+        border-radius: 25px;
+        padding: 0.5rem 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    body.dark-mode .focus-mode-exit .btn {
+        background: #4dabf7;
+        border-color: #4dabf7;
+        color: #1a1a1a;
+    }
+
+    /* Notifications toast */
+    .notification-toast {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-100px);
+        z-index: 2000;
+        min-width: 300px;
+        max-width: 500px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        opacity: 0;
+        transition: all 0.3s ease;
+        margin-bottom: 0;
+    }
+
+    .notification-toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    body.dark-mode .notification-toast {
+        background: #2d2d2d;
+        border-color: #4dabf7;
+        color: #e0e0e0;
+    }
+
+    /* Numéros de ligne (simulation) */
+    .writing-textarea.show-line-numbers {
+        padding-left: 3rem;
+        background-image: linear-gradient(to right, #f8f9fa 50px, transparent 50px);
+        background-attachment: local;
+        line-height: 1.5;
+    }
+
+    body.dark-mode .writing-textarea.show-line-numbers {
+        background-image: linear-gradient(to right, #404040 50px, transparent 50px);
+    }
+
+    /* Transitions fluides */
+    .writing-interface,
+    .writing-header,
+    .writing-content,
+    .writing-textarea {
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    let saveTimeout;
+    let isTyping = false;
+
+    // Sauvegarde automatique
+    function autoSave() {
+        if (isTyping) return;
+        
+        const contenu = document.getElementById('contenu').value;
+        const titre = document.getElementById('titre').value;
+        
+        updateSaveStatus('saving');
+        
+        fetch(`/chapitre/{{ chapitre.id }}/sauvegarder-ajax`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `contenu=${encodeURIComponent(contenu)}&titre=${encodeURIComponent(titre)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateSaveStatus('saved');
+                updateWordCount(data.nombreMots);
+            } else {
+                updateSaveStatus('error');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur de sauvegarde:', error);
+            updateSaveStatus('error');
+        });
+    }
+
+    // Mise à jour du statut de sauvegarde
+    function updateSaveStatus(status) {
+        const statusElement = document.getElementById('saveStatus');
+        statusElement.classList.remove('bg-success', 'bg-warning', 'bg-danger');
+        
+        switch(status) {
+            case 'saving':
+                statusElement.className = 'badge bg-warning';
+                statusElement.innerHTML = '<i class="bi bi-clock"></i> Sauvegarde...';
+                break;
+            case 'saved':
+                statusElement.className = 'badge bg-success save-animation';
+                statusElement.innerHTML = '<i class="bi bi-check-circle"></i> Sauvegardé';
+                setTimeout(() => statusElement.classList.remove('save-animation'), 500);
+                break;
+            case 'error':
+                statusElement.className = 'badge bg-danger';
+                statusElement.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Erreur';
+                break;
+        }
+    }
+
+    // Mise à jour du compteur de mots
+    function updateWordCount(serverWords = null) {
+        const contenu = document.getElementById('contenu').value;
+        const words = serverWords || (contenu.trim() === '' ? 0 : contenu.trim().split(/\s+/).length);
+        const chars = contenu.length;
+        
+        document.getElementById('wordCount').textContent = words;
+        document.getElementById('charCount').textContent = chars;
+        
+        // Mise à jour dans le modal si ouvert
+        document.getElementById('statsWords').textContent = words;
+        document.getElementById('statsChars').textContent = chars;
+        document.getElementById('statsReadTime').textContent = Math.round(words / 200) + 'min';
+    }
+
+    // Formatage de texte
+    function formatText(command) {
+        const textarea = document.getElementById('contenu');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        
+        let formattedText = '';
+        switch(command) {
+            case 'bold':
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                formattedText = `_${selectedText}_`;
+                break;
+        }
+        
+        if (selectedText) {
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start, start + formattedText.length);
+        }
+        
+        updateWordCount();
+        scheduleAutoSave();
+    }
+
+    // Insertion de texte
+    function insertText(text) {
+        const textarea = document.getElementById('contenu');
+        const start = textarea.selectionStart;
+        
+        textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(start);
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+        
+        updateWordCount();
+        scheduleAutoSave();
+    }
+
+    // Insertion de dialogue
+    function insertDialogue() {
+        insertText('\n\n— ');
+    }
+
+    // Sauvegarde manuelle
+    function saveChapter() {
+        autoSave();
+    }
+
+    // Programmer la sauvegarde automatique
+    function scheduleAutoSave() {
+        isTyping = true;
+        updateSaveStatus('saving');
+        
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            isTyping = false;
+            autoSave();
+        }, 3000); // Sauvegarde après 3 secondes d'inactivité
+    }
+
+    // Mode plein écran
+    function toggleFullscreen() {
+        const writingInterface = document.querySelector('.writing-interface');
+        writingInterface.classList.toggle('fullscreen');
+    }
+
+    // Thème sombre
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDark);
+        
+        // Mettre à jour l'icône du bouton
+        const button = event.target.closest('.dropdown-item');
+        const icon = button.querySelector('i');
+        if (isDark) {
+            icon.className = 'bi bi-sun me-2';
+            button.innerHTML = '<i class="bi bi-sun me-2"></i>Thème clair';
+        } else {
+            icon.className = 'bi bi-moon me-2';
+            button.innerHTML = '<i class="bi bi-moon me-2"></i>Thème sombre';
+        }
+    }
+
+    // Mode focus (masque le header et les distractions)
+    function toggleFocusMode() {
+        const writingInterface = document.querySelector('.writing-interface');
+        const header = document.querySelector('.writing-header');
+        const focusExitBtn = document.getElementById('focusModeExit');
+        
+        writingInterface.classList.toggle('focus-mode');
+        const isFocus = writingInterface.classList.contains('focus-mode');
+        
+        if (isFocus) {
+            header.style.display = 'none';
+            document.getElementById('titleSection').style.display = 'none';
+            focusExitBtn.style.display = 'block';
+            
+            // Message d'aide
+            showNotification('Mode focus activé ! Appuyez sur Échap ou cliquez sur le bouton pour sortir.', 'info', 3000);
+        } else {
+            header.style.display = 'block';
+            document.getElementById('titleSection').style.display = 'block';
+            focusExitBtn.style.display = 'none';
+        }
+    }
+
+    // Fonction pour afficher des notifications
+    function showNotification(message, type = 'info', duration = 3000) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} notification-toast`;
+        notification.innerHTML = `<i class="bi bi-info-circle me-2"></i>${message}`;
+        
+        document.body.appendChild(notification);
+        
+        // Animation d'apparition
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        // Suppression automatique
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => document.body.removeChild(notification), 300);
+        }, duration);
+    }
+
+    // Toggle vérification orthographique
+    function toggleSpellCheck() {
+        const textarea = document.getElementById('contenu');
+        const isEnabled = textarea.spellcheck;
+        textarea.spellcheck = !isEnabled;
+        
+        const button = event.target.closest('.dropdown-item');
+        const icon = button.querySelector('i');
+        if (!isEnabled) {
+            icon.className = 'bi bi-check2-square me-2';
+            button.innerHTML = '<i class="bi bi-check2-square me-2"></i>Vérification activée';
+        } else {
+            icon.className = 'bi bi-spellcheck me-2';
+            button.innerHTML = '<i class="bi bi-spellcheck me-2"></i>Vérification orthographique';
+        }
+    }
+
+    // Ouvrir recherche
+    function openSearch() {
+        const textarea = document.getElementById('contenu');
+        textarea.focus();
+        // Simuler Ctrl+F pour la recherche native du navigateur
+        if (document.execCommand) {
+            document.execCommand('Find', false, null);
+        }
+    }
+
+    // Paramètres de l'éditeur
+    function showEditorSettings() {
+        const modal = new bootstrap.Modal(document.getElementById('editorSettingsModal'));
+        modal.show();
+    }
+
+    // Paramètres du chapitre
+    function showChapterSettings() {
+        const modal = new bootstrap.Modal(document.getElementById('chapterSettingsModal'));
+        modal.show();
+    }
+
+    function saveChapterSettings() {
+        const titre = document.getElementById('modalTitre').value;
+        const ordre = document.getElementById('modalOrdre').value;
+        
+        document.getElementById('titre').value = titre;
+        
+        // Sauvegarder les changements
+        fetch(`/chapitre/{{ chapitre.id }}/ordre`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `ordre=${ordre}`
+        });
+        
+        scheduleAutoSave();
+        bootstrap.Modal.getInstance(document.getElementById('chapterSettingsModal')).hide();
+    }
+
+    // Raccourcis clavier
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'b':
+                    e.preventDefault();
+                    formatText('bold');
+                    break;
+                case 'i':
+                    e.preventDefault();
+                    formatText('italic');
+                    break;
+                case 'u':
+                    e.preventDefault();
+                    formatText('underline');
+                    break;
+                case 's':
+                    e.preventDefault();
+                    saveChapter();
+                    break;
+            }
+        }
+        
+        // Échap pour sortir du plein écran ET du mode focus
+        if (e.key === 'Escape') {
+            const writingInterface = document.querySelector('.writing-interface');
+            writingInterface.classList.remove('fullscreen');
+            
+            // Sortir du mode focus aussi
+            if (writingInterface.classList.contains('focus-mode')) {
+                toggleFocusMode();
+            }
+        }
+    });
+
+    // Fonctions pour les paramètres de l'éditeur
+    function changeFontSize() {
+        const fontSize = document.getElementById('fontSize').value;
+        document.getElementById('contenu').style.fontSize = fontSize;
+        localStorage.setItem('editorFontSize', fontSize);
+    }
+
+    function changeFontFamily() {
+        const fontFamily = document.getElementById('fontFamily').value;
+        document.getElementById('contenu').style.fontFamily = fontFamily;
+        localStorage.setItem('editorFontFamily', fontFamily);
+    }
+
+    function changeLineHeight() {
+        const lineHeight = document.getElementById('lineHeight').value;
+        document.getElementById('contenu').style.lineHeight = lineHeight;
+        localStorage.setItem('editorLineHeight', lineHeight);
+    }
+
+    function toggleLineNumbers() {
+        const showNumbers = document.getElementById('showLineNumbers').checked;
+        const textarea = document.getElementById('contenu');
+        
+        if (showNumbers) {
+            textarea.classList.add('show-line-numbers');
+        } else {
+            textarea.classList.remove('show-line-numbers');
+        }
+        localStorage.setItem('editorShowLineNumbers', showNumbers);
+    }
+
+    function toggleWordWrap() {
+        const wrap = document.getElementById('wordWrap').checked;
+        const textarea = document.getElementById('contenu');
+        textarea.style.whiteSpace = wrap ? 'pre-wrap' : 'pre';
+        localStorage.setItem('editorWordWrap', wrap);
+    }
+
+    function resetEditorSettings() {
+        // Réinitialiser aux valeurs par défaut
+        document.getElementById('fontSize').value = '1.1rem';
+        document.getElementById('fontFamily').value = 'Georgia, serif';
+        document.getElementById('lineHeight').value = '1.8';
+        document.getElementById('showLineNumbers').checked = false;
+        document.getElementById('wordWrap').checked = true;
+        
+        // Appliquer les changements
+        changeFontSize();
+        changeFontFamily();
+        changeLineHeight();
+        toggleLineNumbers();
+        toggleWordWrap();
+        
+        // Effacer le localStorage
+        localStorage.removeItem('editorFontSize');
+        localStorage.removeItem('editorFontFamily');
+        localStorage.removeItem('editorLineHeight');
+        localStorage.removeItem('editorShowLineNumbers');
+        localStorage.removeItem('editorWordWrap');
+    }
+
+    function loadEditorSettings() {
+        // Charger les paramètres sauvegardés
+        const fontSize = localStorage.getItem('editorFontSize');
+        const fontFamily = localStorage.getItem('editorFontFamily');
+        const lineHeight = localStorage.getItem('editorLineHeight');
+        const showLineNumbers = localStorage.getItem('editorShowLineNumbers') === 'true';
+        const wordWrap = localStorage.getItem('editorWordWrap') !== 'false';
+        
+        if (fontSize) {
+            document.getElementById('fontSize').value = fontSize;
+            changeFontSize();
+        }
+        if (fontFamily) {
+            document.getElementById('fontFamily').value = fontFamily;
+            changeFontFamily();
+        }
+        if (lineHeight) {
+            document.getElementById('lineHeight').value = lineHeight;
+            changeLineHeight();
+        }
+        
+        document.getElementById('showLineNumbers').checked = showLineNumbers;
+        toggleLineNumbers();
+        
+        document.getElementById('wordWrap').checked = wordWrap;
+        toggleWordWrap();
+
+        // Charger le thème sombre
+        const isDarkMode = localStorage.getItem('darkMode') === 'true';
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+        }
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        const contenuTextarea = document.getElementById('contenu');
+        const titleInput = document.getElementById('titre');
+        
+        // Charger les paramètres sauvegardés
+        loadEditorSettings();
+        
+        // Mise à jour du compteur initial
+        updateWordCount();
+        
+        // Événements de saisie
+        contenuTextarea.addEventListener('input', function() {
+            updateWordCount();
+            scheduleAutoSave();
+        });
+        
+        titleInput.addEventListener('input', function() {
+            scheduleAutoSave();
+        });
+        
+        // Focus automatique sur le contenu
+        contenuTextarea.focus();
+        
+        // Afficher la barre d'outils au focus
+        contenuTextarea.addEventListener('focus', function() {
+            document.getElementById('writingToolbar').classList.add('show');
+        });
+        
+        // Masquer après un délai sans focus
+        let hideToolbarTimeout;
+        contenuTextarea.addEventListener('blur', function() {
+            hideToolbarTimeout = setTimeout(() => {
+                document.getElementById('writingToolbar').classList.remove('show');
+            }, 3000);
+        });
+        
+        contenuTextarea.addEventListener('focus', function() {
+            clearTimeout(hideToolbarTimeout);
+        });
+    });
+</script>
+{% endblock %} 

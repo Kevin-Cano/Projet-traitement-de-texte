@@ -1,0 +1,160 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Livres - Écriture de Livre{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-book me-2 text-primary"></i>
+        Mes Livres
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ path('app_livre_new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>
+            Nouveau Livre
+        </a>
+    </div>
+</div>
+
+{% if livres|length > 0 %}
+    <div class="row">
+        {% for livre in livres %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 fade-in">
+                    <div class="card-header bg-transparent border-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary mb-0">{{ livre.titre }}</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ path('app_livre_show', {id: livre.id}) }}">
+                                        <i class="bi bi-eye me-2"></i>Voir
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ path('app_livre_edit', {id: livre.id}) }}">
+                                        <i class="bi bi-pencil me-2"></i>Modifier
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ livre.id }}, '{{ livre.titre|e('js') }}')">
+                                        <i class="bi bi-trash me-2"></i>Supprimer
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        {% if livre.auteur is defined and livre.auteur %}
+                            <small class="text-muted">par {{ livre.auteur }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if livre.description is defined and livre.description %}
+                            <p class="card-text text-muted">{{ livre.description|length > 100 ? livre.description|slice(0, 100) ~ '...' : livre.description }}</p>
+                        {% endif %}
+                        
+                        <!-- Statistiques -->
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <h6 class="mb-1 text-primary">{{ livre.nombreChapitres ?? 0 }}</h6>
+                                    <small class="text-muted">Chapitre{{ (livre.nombreChapitres ?? 0) > 1 ? 's' : '' }}</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <h6 class="mb-1 text-success">{{ livre.nombrePersonnages ?? 0 }}</h6>
+                                    <small class="text-muted">Personnage{{ (livre.nombrePersonnages ?? 0) > 1 ? 's' : '' }}</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-center">
+                                    <h6 class="mb-1 text-info">{{ livre.totalMots ?? 0 }}</h6>
+                                    <small class="text-muted">Mot{{ (livre.totalMots ?? 0) > 1 ? 's' : '' }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                {{ livre.dateCreation is defined ? livre.dateCreation|date('d/m/Y') : 'Non définie' }}
+                            </small>
+                            {% if livre.dateModification is defined and livre.dateModification %}
+                                <small class="text-muted">
+                                    <i class="bi bi-pencil-square me-1"></i>
+                                    {{ livre.dateModification|date('d/m/Y') }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ path('app_livre_show', {id: livre.id}) }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-arrow-right-circle me-2"></i>
+                                Ouvrir le projet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-5">
+                    <i class="bi bi-book display-1 text-muted mb-4"></i>
+                    <h3 class="text-muted">Aucun livre pour le moment</h3>
+                    <p class="text-muted mb-4">Commencez votre aventure littéraire en créant votre premier livre !</p>
+                    <a href="{{ path('app_livre_new') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer mon premier livre
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal for delete confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le livre <strong id="livreTitle"></strong> ?</p>
+                <p class="text-muted">Cette action est irréversible et supprimera tous les chapitres, personnages et moodboards associés.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete') }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function confirmDelete(livreId, livreTitle) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        const titleElement = document.getElementById('livreTitle');
+        
+        // Mettre à jour l'action du formulaire et le titre
+        form.action = `/livre/${livreId}/supprimer`;
+        titleElement.textContent = livreTitle;
+        
+        // Afficher le modal
+        modal.show();
+    }
+</script>
+{% endblock %} 

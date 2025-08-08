@@ -1,0 +1,616 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ lieu ? 'Modifier' : 'Nouveau' }} Lieu{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .world-building-header {
+            background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            color: #2e7d32;
+            border-bottom: 2px solid #e8f5e8;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .coordinates-preview {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        
+        .coordinates-preview:hover {
+            border-color: #2e7d32;
+        }
+        
+        .coordinates-preview.has-coords {
+            background: #e8f5e8;
+            border-color: #2e7d32;
+        }
+        
+        .tag-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            min-height: 40px;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            background: white;
+        }
+        
+        .tag-item {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .tag-remove {
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .tag-remove:hover {
+            color: #dc3545;
+        }
+        
+        .character-count {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+        
+        .preview-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .location-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .type-option {
+            padding: 0.75rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .type-option:hover {
+            border-color: #2e7d32;
+            background: #e8f5e8;
+        }
+        
+        .type-option.selected {
+            border-color: #2e7d32;
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .type-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="world-building-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="bi bi-{{ lieu ? 'pencil' : 'plus-circle' }} me-3"></i>
+                    {{ lieu ? 'Modifier le lieu' : 'Nouveau lieu' }}
+                </h1>
+                <p class="mb-0 mt-2 opacity-75">
+                    {% if lieu %}
+                        Modification de "{{ lieu.nom }}"
+                    {% else %}
+                        Créez un nouveau lieu pour enrichir votre univers
+                    {% endif %}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ path('app_world_building_lieux') }}" class="btn btn-light">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <form method="post" id="lieuForm">
+        <div class="row">
+            <!-- Colonne principale -->
+            <div class="col-lg-8">
+                <!-- Informations de base -->
+                <div class="form-card">
+                    <h4 class="section-title">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Informations générales
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="nom" class="form-label">Nom du lieu *</label>
+                                <input type="text" class="form-control form-control-lg" 
+                                       id="nom" name="nom" required
+                                       value="{{ lieu.nom|default('') }}"
+                                       placeholder="Ex: Capitale Royale, Forêt Enchantée...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="livre_id" class="form-label">Livre</label>
+                                <select class="form-select" id="livre_id" name="livre_id" required>
+                                    {% for livre in livres %}
+                                        <option value="{{ livre.id }}" 
+                                                {{ lieu and lieu.livre_id == livre.id ? 'selected' : '' }}>
+                                            {{ livre.titre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Type de lieu</label>
+                        <div class="location-type-grid">
+                            {% for type in types_lieu %}
+                                <div class="type-option {{ lieu and lieu.type == type ? 'selected' : '' }}" 
+                                     data-type="{{ type }}" onclick="selectType('{{ type }}')">
+                                    <span class="type-icon">
+                                        {% if type == 'ville' %}🏙️
+                                        {% elseif type == 'château' %}🏰
+                                        {% elseif type == 'forêt' %}🌲
+                                        {% elseif type == 'montagne' %}⛰️
+                                        {% elseif type == 'rivière' %}🌊
+                                        {% elseif type == 'désert' %}🏜️
+                                        {% elseif type == 'temple' %}⛪
+                                        {% elseif type == 'taverne' %}🍺
+                                        {% elseif type == 'ruines' %}🏛️
+                                        {% else %}📍
+                                        {% endif %}
+                                    </span>
+                                    <span>{{ type|title }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="type" name="type" value="{{ lieu.type|default('ville') }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4"
+                                  placeholder="Décrivez ce lieu, son apparence, son atmosphère...">{{ lieu.description|default('') }}</textarea>
+                        <div class="character-count">
+                            <span id="descCount">{{ lieu and lieu.description ? lieu.description|length : 0 }}</span>/500 caractères
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Position et géographie -->
+                <div class="form-card">
+                    <h4 class="section-title">
+                        <i class="bi bi-geo-alt me-2"></i>
+                        Position et géographie
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Coordonnées</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="coord_x" name="coord_x" 
+                                               placeholder="X" value="{{ lieu.coordonnees.x|default(0) }}" step="0.1">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control" id="coord_y" name="coord_y" 
+                                               placeholder="Y" value="{{ lieu.coordonnees.y|default(0) }}" step="0.1">
+                                    </div>
+                                </div>
+                                <small class="text-muted">Position sur la carte du monde</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Aperçu de position</label>
+                                <div class="coordinates-preview {{ lieu and lieu.coordonnees ? 'has-coords' : '' }}" 
+                                     onclick="openMapSelector()">
+                                    {% if lieu and lieu.coordonnees %}
+                                        <div>
+                                            <i class="bi bi-geo-alt-fill" style="color: #2e7d32; font-size: 2rem;"></i>
+                                            <br>Position: {{ lieu.coordonnees.x }}, {{ lieu.coordonnees.y }}
+                                        </div>
+                                    {% else %}
+                                        <div class="text-muted">
+                                            <i class="bi bi-geo-alt" style="font-size: 2rem;"></i>
+                                            <br>Cliquez pour positionner sur la carte
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="climat" class="form-label">Climat</label>
+                                <input type="text" class="form-control" id="climat" name="climat" 
+                                       value="{{ lieu.climat|default('') }}"
+                                       placeholder="Ex: Tempéré, Tropical, Aride, Polaire...">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lieu_parent_id" class="form-label">Lieu parent</label>
+                                <select class="form-select" id="lieu_parent_id" name="lieu_parent_id">
+                                    <option value="">Aucun (lieu racine)</option>
+                                    {% for parent in lieux_parents %}
+                                        <option value="{{ parent.id }}" 
+                                                {{ lieu and lieu.lieu_parent_id == parent.id ? 'selected' : '' }}>
+                                            {{ parent.nom }} ({{ parent.type|title }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Lieu qui contient ce lieu (région, pays...)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Détails sociaux et culturels -->
+                <div class="form-card">
+                    <h4 class="section-title">
+                        <i class="bi bi-people me-2"></i>
+                        Société et culture
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="population" class="form-label">Population</label>
+                                <input type="number" class="form-control" id="population" name="population" 
+                                       value="{{ lieu.population|default('') }}"
+                                       placeholder="Nombre d'habitants" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="gouvernement" class="form-label">Gouvernement</label>
+                                <input type="text" class="form-control" id="gouvernement" name="gouvernement" 
+                                       value="{{ lieu.gouvernement|default('') }}"
+                                       placeholder="Ex: Monarchie, République, Tribu...">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="culture" class="form-label">Culture</label>
+                        <textarea class="form-control" id="culture" name="culture" rows="3"
+                                  placeholder="Traditions, coutumes, mentalité des habitants...">{{ lieu.culture|default('') }}</textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="langues" class="form-label">Langues parlées</label>
+                                <input type="text" class="form-control" id="langues" name="langues" 
+                                       value="{{ lieu and lieu.langues ? lieu.langues|join(', ') : '' }}"
+                                       placeholder="Séparez par des virgules">
+                                <small class="text-muted">Ex: Français, Elfique, Draconique</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="religions" class="form-label">Religions</label>
+                                <input type="text" class="form-control" id="religions" name="religions" 
+                                       value="{{ lieu and lieu.religions ? lieu.religions|join(', ') : '' }}"
+                                       placeholder="Séparez par des virgules">
+                                <small class="text-muted">Ex: Culte du Soleil, Panthéon Ancien</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Histoire et détails -->
+                <div class="form-card">
+                    <h4 class="section-title">
+                        <i class="bi bi-book me-2"></i>
+                        Histoire et détails
+                    </h4>
+                    
+                    <div class="mb-3">
+                        <label for="histoire" class="form-label">Histoire</label>
+                        <textarea class="form-control" id="histoire" name="histoire" rows="4"
+                                  placeholder="Histoire du lieu, événements marquants, légendes...">{{ lieu.histoire|default('') }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="architecture" class="form-label">Architecture</label>
+                        <textarea class="form-control" id="architecture" name="architecture" rows="3"
+                                  placeholder="Style architectural, matériaux, particularités...">{{ lieu.architecture|default('') }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="points_interet" class="form-label">Points d'intérêt</label>
+                        <textarea class="form-control" id="points_interet" name="points_interet" rows="4"
+                                  placeholder="Un point d'intérêt par ligne">{{ lieu and lieu.points_interet ? lieu.points_interet|join('\n') : '' }}</textarea>
+                        <small class="text-muted">Ex: Château royal, Grande bibliothèque, Marché aux épices...</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Économie et ressources -->
+                <div class="form-card">
+                    <h5 class="section-title">
+                        <i class="bi bi-coin me-2"></i>
+                        Économie
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label for="economie" class="form-label">Économie</label>
+                        <textarea class="form-control" id="economie" name="economie" rows="3"
+                                  placeholder="Commerce, industrie, agriculture...">{{ lieu.economie|default('') }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ressources" class="form-label">Ressources</label>
+                        <input type="text" class="form-control" id="ressources" name="ressources" 
+                               value="{{ lieu and lieu.ressources ? lieu.ressources|join(', ') : '' }}"
+                               placeholder="Or, fer, bois, épices...">
+                        <small class="text-muted">Séparez par des virgules</small>
+                    </div>
+                </div>
+                
+                <!-- Dangers et défis -->
+                <div class="form-card">
+                    <h5 class="section-title">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        Dangers
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label for="dangers" class="form-label">Dangers connus</label>
+                        <input type="text" class="form-control" id="dangers" name="dangers" 
+                               value="{{ lieu and lieu.dangers ? lieu.dangers|join(', ') : '' }}"
+                               placeholder="Brigands, créatures, catastrophes...">
+                        <small class="text-muted">Séparez par des virgules</small>
+                    </div>
+                </div>
+                
+                <!-- Aperçu -->
+                {% if lieu %}
+                <div class="preview-card">
+                    <h6>Aperçu</h6>
+                    <div class="d-flex align-items-center mb-2">
+                        <span style="font-size: 1.5rem; margin-right: 0.5rem;">
+                            {% if lieu.type == 'ville' %}🏙️
+                            {% elseif lieu.type == 'château' %}🏰
+                            {% elseif lieu.type == 'forêt' %}🌲
+                            {% else %}📍
+                            {% endif %}
+                        </span>
+                        <strong>{{ lieu.nom }}</strong>
+                    </div>
+                    {% if lieu.population %}
+                        <small class="text-muted d-block">{{ lieu.population|number_format }} habitants</small>
+                    {% endif %}
+                    {% if lieu.climat %}
+                        <small class="text-muted d-block">Climat : {{ lieu.climat }}</small>
+                    {% endif %}
+                    <small class="text-muted d-block">
+                        {% if lieu.date_creation is defined and lieu.date_creation %}
+                            Créé le {{ lieu.date_creation|date('d/m/Y') }}
+                        {% else %}
+                            Lieu du royaume de Valdris
+                        {% endif %}
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="row">
+            <div class="col-12">
+                <div class="form-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button type="submit" class="btn btn-success btn-lg me-2">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {{ lieu ? 'Mettre à jour' : 'Créer le lieu' }}
+                            </button>
+                            <a href="{{ path('app_world_building_lieux') }}" class="btn btn-outline-secondary">
+                                Annuler
+                            </a>
+                        </div>
+                        {% if lieu %}
+                            <button type="button" class="btn btn-outline-danger" onclick="confirmDelete()">
+                                <i class="bi bi-trash me-2"></i>
+                                Supprimer
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Gestion du formulaire
+        document.addEventListener('DOMContentLoaded', function() {
+            // Compteur de caractères pour la description
+            const descInput = document.getElementById('description');
+            const descCount = document.getElementById('descCount');
+            
+            descInput.addEventListener('input', function() {
+                const length = this.value.length;
+                descCount.textContent = length;
+                
+                if (length > 500) {
+                    descCount.style.color = '#dc3545';
+                } else if (length > 400) {
+                    descCount.style.color = '#ffc107';
+                } else {
+                    descCount.style.color = '#6c757d';
+                }
+            });
+            
+            // Mise à jour automatique de l'aperçu position
+            document.getElementById('coord_x').addEventListener('input', updateCoordPreview);
+            document.getElementById('coord_y').addEventListener('input', updateCoordPreview);
+        });
+        
+        function selectType(type) {
+            // Mettre à jour la sélection visuelle
+            document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+            document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+            
+            // Mettre à jour le champ caché
+            document.getElementById('type').value = type;
+        }
+        
+        function updateCoordPreview() {
+            const x = document.getElementById('coord_x').value;
+            const y = document.getElementById('coord_y').value;
+            const preview = document.querySelector('.coordinates-preview');
+            
+            if (x && y) {
+                preview.classList.add('has-coords');
+                preview.innerHTML = `
+                    <div>
+                        <i class="bi bi-geo-alt-fill" style="color: #2e7d32; font-size: 2rem;"></i>
+                        <br>Position: ${x}, ${y}
+                    </div>
+                `;
+            } else {
+                preview.classList.remove('has-coords');
+                preview.innerHTML = `
+                    <div class="text-muted">
+                        <i class="bi bi-geo-alt" style="font-size: 2rem;"></i>
+                        <br>Cliquez pour positionner sur la carte
+                    </div>
+                `;
+            }
+        }
+        
+        function openMapSelector() {
+            // Ouvrir une mini-carte pour sélectionner la position
+            // Pour l'instant, juste focus sur les champs de coordonnées
+            document.getElementById('coord_x').focus();
+        }
+        
+        function confirmDelete() {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce lieu ?\n\nCette action est irréversible et supprimera aussi toutes les références à ce lieu.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                {% if lieu %}
+                form.action = '{{ path("app_world_building_lieu_delete", {id: lieu.id}) }}';
+                {% else %}
+                form.action = window.location.href.replace('/edit', '/delete');
+                {% endif %}
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        // Validation du formulaire
+        document.getElementById('lieuForm').addEventListener('submit', function(e) {
+            const nom = document.getElementById('nom').value.trim();
+            
+            if (!nom) {
+                e.preventDefault();
+                alert('Le nom du lieu est obligatoire');
+                document.getElementById('nom').focus();
+                return false;
+            }
+            
+            if (nom.length < 2) {
+                e.preventDefault();
+                alert('Le nom du lieu doit contenir au moins 2 caractères');
+                document.getElementById('nom').focus();
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Auto-complétion pour certains champs
+        const climatSuggestions = ['Tempéré', 'Tropical', 'Aride', 'Polaire', 'Méditerranéen', 'Continental', 'Océanique'];
+        const gouvernementSuggestions = ['Monarchie', 'République', 'Démocratie', 'Dictature', 'Tribu', 'Conseil des Anciens', 'Théocratie'];
+        
+        function addAutoComplete(fieldId, suggestions) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            
+            field.addEventListener('input', function() {
+                const value = this.value.toLowerCase();
+                const matches = suggestions.filter(s => s.toLowerCase().includes(value));
+                
+                // Ici vous pourriez implémenter une dropdown d'autocomplétion
+                // Pour l'instant, juste un titre avec les suggestions
+                if (matches.length > 0 && value.length > 0) {
+                    this.title = 'Suggestions: ' + matches.join(', ');
+                } else {
+                    this.title = '';
+                }
+            });
+        }
+        
+        addAutoComplete('climat', climatSuggestions);
+        addAutoComplete('gouvernement', gouvernementSuggestions);
+    </script>
+{% endblock %} 

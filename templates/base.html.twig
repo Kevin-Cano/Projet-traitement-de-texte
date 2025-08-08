@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Écriture de Livre{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>📚</text></svg>">
+        
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- Bootstrap Icons -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+        <!-- Custom CSS -->
+        <style>
+            :root {
+                --primary-color: #6366f1;
+                --secondary-color: #ec4899;
+                --success-color: #10b981;
+                --warning-color: #f59e0b;
+                --danger-color: #ef4444;
+                --dark-color: #1f2937;
+                --light-color: #f9fafb;
+            }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background-color: var(--light-color);
+            }
+
+            .navbar {
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+
+            .navbar-brand {
+                font-weight: 700;
+                font-size: 1.5rem;
+            }
+
+            .sidebar {
+                background: white;
+                min-height: calc(100vh - 76px);
+                max-height: calc(100vh - 76px);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                border-right: 1px solid #e5e7eb;
+                overflow-y: auto;
+                position: sticky;
+                top: 76px;
+            }
+
+            .sidebar::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .sidebar::-webkit-scrollbar-track {
+                background: #f1f5f9;
+            }
+
+            .sidebar::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 3px;
+            }
+
+            .sidebar::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+            }
+
+            .sidebar .nav-link {
+                color: var(--dark-color);
+                padding: 0.75rem 1rem;
+                border-radius: 0.5rem;
+                margin: 0.25rem 0.5rem;
+                transition: all 0.3s ease;
+            }
+
+            .sidebar .nav-link:hover {
+                background-color: #f3f4f6;
+                color: var(--primary-color);
+                transform: translateX(5px);
+            }
+
+            .sidebar .nav-link.active {
+                background-color: var(--primary-color);
+                color: white;
+                box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            }
+
+            .sidebar-heading {
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                margin: 1.25rem 0.5rem 0.75rem 0.5rem !important;
+                padding: 0.6rem 1rem !important;
+                background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+                border-radius: 0.6rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+
+            .sidebar .nav-item:not(.ms-3) {
+                margin: 0.2rem 0.5rem;
+            }
+
+            .sidebar .nav-item:not(.ms-3) .nav-link {
+                border-radius: 0.6rem;
+                font-weight: 500;
+            }
+
+            .sidebar .nav-item.ms-3 .nav-link {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem 0.5rem 1.5rem;
+                border-left: 3px solid transparent;
+                margin: 0.1rem 0.5rem 0.1rem 0.5rem;
+                border-radius: 0.4rem;
+                position: relative;
+                background: transparent;
+            }
+
+            .sidebar .nav-item.ms-3 .nav-link:hover {
+                border-left-color: var(--primary-color);
+                background: rgba(99, 102, 241, 0.06);
+                transform: translateX(2px);
+                color: var(--primary-color);
+            }
+
+            .sidebar .nav-item.ms-3 .nav-link.active {
+                border-left-color: var(--primary-color);
+                background: rgba(99, 102, 241, 0.1);
+                font-weight: 600;
+                color: var(--primary-color);
+                box-shadow: 0 1px 2px rgba(99, 102, 241, 0.15);
+            }
+
+            .sidebar .nav-item.ms-3 .nav-link i {
+                width: 14px;
+                text-align: left;
+                margin-right: 0.6rem;
+                font-size: 0.85rem;
+            }
+
+            .sidebar .nav-item:not(.ms-3) .nav-link i {
+                width: 18px;
+                text-align: center;
+                margin-right: 0.65rem;
+            }
+
+
+
+            .main-content {
+                padding: 2rem;
+            }
+
+            .card {
+                border: none;
+                border-radius: 1rem;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .btn {
+                border-radius: 0.75rem;
+                font-weight: 600;
+                padding: 0.5rem 1.5rem;
+                transition: all 0.3s ease;
+            }
+
+            .btn-primary {
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                border: none;
+            }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            }
+
+            .alert {
+                border: none;
+                border-radius: 0.75rem;
+                padding: 1rem 1.5rem;
+            }
+
+            .editor-container {
+                border: 2px solid #e5e7eb;
+                border-radius: 1rem;
+                background: white;
+                min-height: 400px;
+            }
+
+            .editor-toolbar {
+                background: #f8fafc;
+                border-bottom: 1px solid #e5e7eb;
+                border-radius: 1rem 1rem 0 0;
+                padding: 0.75rem;
+            }
+
+            .word-count {
+                position: sticky;
+                bottom: 1rem;
+                right: 1rem;
+                background: var(--primary-color);
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 2rem;
+                font-size: 0.875rem;
+                font-weight: 600;
+                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            }
+
+            .moodboard-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .moodboard-item {
+                position: relative;
+                border-radius: 0.75rem;
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+
+            .moodboard-item:hover {
+                transform: scale(1.05);
+            }
+
+            .moodboard-item img {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+            }
+
+            .loading {
+                display: inline-block;
+                width: 20px;
+                height: 20px;
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid var(--primary-color);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            .fade-in {
+                animation: fadeIn 0.5s ease-in;
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @media (max-width: 768px) {
+                .sidebar {
+                    position: fixed;
+                    left: -100%;
+                    width: 250px;
+                    z-index: 1000;
+                    transition: left 0.3s ease;
+                }
+
+                .sidebar.show {
+                    left: 0;
+                }
+
+                .main-content {
+                    padding: 1rem;
+                }
+            }
+        </style>
+        
+        {% block stylesheets %}{% endblock %}
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ path('app_home') }}">
+                    <i class="bi bi-book-fill me-2"></i>
+                    Écriture de Livre
+                </a>
+                
+                <button class="navbar-toggler d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="navbar-nav ms-auto">
+                    <span class="navbar-text">
+                        <i class="bi bi-pen-fill me-1"></i>
+                        Votre espace créatif
+                    </span>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Sidebar -->
+                <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                    <div class="position-sticky pt-3 pb-4">
+                        <ul class="nav flex-column">
+                            <!-- Section Principale -->
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.request.get('_route') starts with 'app_home' ? 'active' : '' }}" href="{{ path('app_home') }}">
+                                    <i class="bi bi-house-door-fill me-2"></i>
+                                    Accueil
+                                </a>
+                            </li>
+                            
+                            <!-- Section Écriture -->
+                            <li class="nav-item mt-3">
+                                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mb-1 text-muted">
+                                    <span>✍️ Écriture</span>
+                                </h6>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.request.get('_route') starts with 'app_livre' ? 'active' : '' }}" href="{{ path('app_livre_index') }}">
+                                    <i class="bi bi-book me-2"></i>
+                                    Mes Livres
+                                </a>
+                            </li>
+                            {% if app.request.get('livre_id') %}
+                                <li class="nav-item ms-3">
+                                    <a class="nav-link {{ app.request.get('_route') starts with 'app_chapitre' ? 'active' : '' }}" href="{{ path('app_chapitre_index', {livreId: app.request.get('livre_id')}) }}">
+                                        <i class="bi bi-file-text me-2"></i>
+                                        Chapitres
+                                    </a>
+                                </li>
+                                <li class="nav-item ms-3">
+                                    {% if app.request.get('livre_id') or app.request.get('livreId') %}
+                                        <a class="nav-link {{ app.request.get('_route') starts with 'app_personnage' ? 'active' : '' }}" href="{{ path('app_personnage_index', {livreId: app.request.get('livre_id') ?: app.request.get('livreId') ?: 1}) }}">
+                                            <i class="bi bi-people me-2"></i>
+                                            Personnages
+                                        </a>
+                                    {% else %}
+                                        <span class="nav-link text-muted">
+                                            <i class="bi bi-people me-2"></i>
+                                            Personnages
+                                        </span>
+                                    {% endif %}
+                                </li>
+                                <li class="nav-item ms-3">
+                                    <a class="nav-link {{ app.request.get('_route') starts with 'app_moodboard' ? 'active' : '' }}" href="{{ path('app_moodboard_index', {livreId: app.request.get('livre_id')}) }}">
+                                        <i class="bi bi-images me-2"></i>
+                                        Moodboards
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            <!-- Section Analytics -->
+                            <li class="nav-item mt-3">
+                                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mb-1 text-muted">
+                                    <span>📊 Analytics</span>
+                                </h6>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.request.get('_route') starts with 'app_analytics' ? 'active' : '' }}" href="{{ path('app_analytics_dashboard') }}">
+                                    <i class="bi bi-graph-up me-2"></i>
+                                    Tableau de Bord
+                                </a>
+                            </li>
+                            
+                            <!-- Section World Building -->
+                            <li class="nav-item mt-3">
+                                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mb-1 text-muted">
+                                    <span>🗺️ World Building</span>
+                                </h6>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {{ app.request.get('_route') starts with 'app_world_building' and 'lieux' not in app.request.get('_route') and 'chronologie' not in app.request.get('_route') and 'lexique' not in app.request.get('_route') and 'carte' not in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_index') }}">
+                                    <i class="bi bi-globe me-2"></i>
+                                    Vue d'ensemble
+                                </a>
+                            </li>
+                            <li class="nav-item ms-3">
+                                <a class="nav-link {{ 'lieux' in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_lieux') }}">
+                                    <i class="bi bi-geo-alt me-2"></i>
+                                    Lieux
+                                </a>
+                            </li>
+                            <li class="nav-item ms-3">
+                                <a class="nav-link {{ 'chronologie' in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_chronologie') }}">
+                                    <i class="bi bi-calendar-event me-2"></i>
+                                    Chronologie
+                                </a>
+                            </li>
+                            <li class="nav-item ms-3">
+                                <a class="nav-link {{ 'carte' in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_carte') }}">
+                                    <i class="bi bi-map me-2"></i>
+                                    Carte
+                                </a>
+                            </li>
+                            <li class="nav-item ms-3">
+                                <a class="nav-link {{ 'lexique' in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_lexique') }}">
+                                    <i class="bi bi-book-half me-2"></i>
+                                    Lexique
+                                </a>
+                            </li>
+                            <li class="nav-item ms-3">
+                                <a class="nav-link {{ 'relations' in app.request.get('_route') ? 'active' : '' }}" href="{{ path('app_world_building_relations') }}">
+                                    <i class="bi bi-diagram-3 me-2"></i>
+                                    Relations
+                                </a>
+                            </li>
+                            
+                            <!-- Section Outils -->
+                            <li class="nav-item mt-3">
+                                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mb-1 text-muted">
+                                    <span>🛠️ Outils</span>
+                                </h6>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_livre_new') }}">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Nouveau Livre
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_world_building_lieu_nouveau') }}">
+                                    <i class="bi bi-plus-square me-2"></i>
+                                    Nouveau Lieu
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ path('app_world_building_evenement_nouveau') }}">
+                                    <i class="bi bi-calendar-plus me-2"></i>
+                                    Nouvel Événement
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+
+                <!-- Main content -->
+                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                    {% for type, messages in app.flashes %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ type == 'error' ? 'danger' : type }} alert-dismissible fade show fade-in" role="alert">
+                                <i class="bi bi-{{ type == 'success' ? 'check-circle' : (type == 'error' ? 'exclamation-triangle' : 'info-circle') }}-fill me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+
+                    {% block body %}{% endblock %}
+                </main>
+            </div>
+        </div>
+
+        <!-- Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        <!-- Auto-save functionality for editors -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Auto-save pour les éditeurs de texte
+                const editors = document.querySelectorAll('[data-editor="true"]');
+                editors.forEach(editor => {
+                    let saveTimeout;
+                    editor.addEventListener('input', function() {
+                        clearTimeout(saveTimeout);
+                        saveTimeout = setTimeout(() => {
+                            autoSave(editor);
+                        }, 2000); // Sauvegarde après 2 secondes d'inactivité
+                    });
+                });
+
+                function autoSave(editor) {
+                    const form = editor.closest('form');
+                    if (!form) return;
+
+                    const chapitreId = form.getAttribute('data-chapitre-id');
+                    if (!chapitreId) return;
+
+                    const formData = new FormData();
+                    formData.append('contenu', editor.value);
+
+                    fetch(`/chapitre/${chapitreId}/sauvegarde-ajax`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAutoSaveIndicator();
+                            updateWordCount(data.nombreMots);
+                        }
+                    })
+                    .catch(error => console.error('Erreur de sauvegarde:', error));
+                }
+
+                function showAutoSaveIndicator() {
+                    const indicator = document.getElementById('autosave-indicator');
+                    if (indicator) {
+                        indicator.textContent = 'Sauvegardé automatiquement';
+                        indicator.className = 'text-success';
+                        setTimeout(() => {
+                            indicator.textContent = '';
+                        }, 3000);
+                    }
+                }
+
+                function updateWordCount(count) {
+                    const wordCountElement = document.getElementById('word-count');
+                    if (wordCountElement) {
+                        wordCountElement.textContent = `${count} mots`;
+                    }
+                }
+
+                // Responsive sidebar toggle
+                const sidebarToggle = document.querySelector('[data-bs-toggle="collapse"]');
+                if (sidebarToggle) {
+                    sidebarToggle.addEventListener('click', function() {
+                        const sidebar = document.getElementById('sidebarMenu');
+                        sidebar.classList.toggle('show');
+                    });
+                }
+            });
+        </script>
+
+        {% block javascripts %}{% endblock %}
+    </body>
+</html> 

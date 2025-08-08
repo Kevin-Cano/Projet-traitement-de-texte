@@ -1,0 +1,391 @@
+/* Éditeur avancé - Styles principaux */
+.advanced-editor-container {
+    display: flex;
+    height: 100vh;
+    background: #f8f9fa;
+}
+
+.advanced-editor-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Barre d'outils */
+.advanced-editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    z-index: 100;
+    transition: opacity 0.3s ease;
+}
+
+.toolbar-section {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.toolbar-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Éditeur CodeMirror personnalisé */
+.cm-editor {
+    height: 100%;
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+.cm-focused {
+    outline: none;
+}
+
+.cm-content {
+    padding: 2rem;
+    min-height: calc(100vh - 60px);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.cm-line {
+    padding: 0.25rem 0;
+}
+
+/* Sidebar */
+.advanced-editor-sidebar {
+    width: 300px;
+    background: white;
+    border-left: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.3s ease;
+    z-index: 99;
+}
+
+.sidebar-tabs .nav-tabs {
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem;
+}
+
+.sidebar-tabs .nav-link {
+    border: none;
+    padding: 0.5rem 0.75rem;
+    color: #6c757d;
+}
+
+.sidebar-tabs .nav-link.active {
+    background: #007bff;
+    color: white;
+    border-radius: 4px;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sidebar-header h6 {
+    margin: 0;
+    color: #495057;
+}
+
+/* Plan automatique */
+.outline-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.outline-item {
+    margin: 0.25rem 0;
+    padding-left: calc(var(--level) * 1rem);
+}
+
+.outline-item.level-1 { --level: 0; font-weight: 600; }
+.outline-item.level-2 { --level: 1; font-weight: 500; }
+.outline-item.level-3 { --level: 2; font-weight: 400; }
+.outline-item.level-4 { --level: 3; font-weight: 300; }
+.outline-item.level-5 { --level: 4; font-weight: 300; }
+.outline-item.level-6 { --level: 5; font-weight: 300; }
+
+.outline-item a {
+    color: #495057;
+    text-decoration: none;
+    display: block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.outline-item a:hover {
+    background-color: #e9ecef;
+    color: #007bff;
+}
+
+/* Notes de marge */
+.notes-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.note-item {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.note-content {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.note-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Liste des personnages */
+.characters-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.character-mention {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-bottom: 0.25rem;
+    background: #e3f2fd;
+    border-radius: 4px;
+}
+
+.character-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #2196f3;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-right: 0.5rem;
+}
+
+/* Palette flottante */
+.floating-palette {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 1rem;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+    min-width: 200px;
+}
+
+.palette-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.palette-divider {
+    height: 1px;
+    background: #dee2e6;
+    margin: 0.5rem 0;
+}
+
+.word-goals {
+    text-align: center;
+}
+
+/* Mode focus */
+body.focus-mode .advanced-editor-sidebar {
+    transform: translateX(100%);
+}
+
+body.focus-mode .advanced-editor-toolbar {
+    opacity: 0;
+}
+
+body.focus-mode .floating-palette {
+    opacity: 0;
+}
+
+body.focus-mode .cm-content {
+    max-width: 600px;
+    font-size: 1.2rem;
+}
+
+/* Mode sombre */
+body.dark-mode {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .advanced-editor-toolbar {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .advanced-editor-sidebar {
+    background: #2d2d2d;
+    border-color: #404040;
+}
+
+body.dark-mode .sidebar-content {
+    background: #2d2d2d;
+}
+
+body.dark-mode .note-item {
+    background: #3d3d00;
+    border-color: #555500;
+}
+
+body.dark-mode .character-mention {
+    background: #003d5c;
+}
+
+body.dark-mode .floating-palette {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .advanced-editor-sidebar {
+        position: fixed;
+        right: -300px;
+        top: 0;
+        height: 100vh;
+        z-index: 1001;
+        transition: right 0.3s ease;
+    }
+    
+    .advanced-editor-sidebar.show {
+        right: 0;
+    }
+    
+    .floating-palette {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+    }
+    
+    .toolbar-stats {
+        display: none;
+    }
+}
+
+/* Animations */
+.outline-item a,
+.note-item,
+.character-mention {
+    transition: all 0.2s ease;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+/* Corrections orthographiques */
+.cm-spell-error {
+    text-decoration: underline;
+    text-decoration-color: #dc3545;
+    text-decoration-style: wavy;
+}
+
+/* Surlignage de la ligne active */
+.cm-activeLine {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Scrollbars personnalisées */
+.sidebar-content::-webkit-scrollbar,
+.outline-list::-webkit-scrollbar,
+.notes-list::-webkit-scrollbar,
+.characters-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track,
+.outline-list::-webkit-scrollbar-track,
+.notes-list::-webkit-scrollbar-track,
+.characters-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb,
+.outline-list::-webkit-scrollbar-thumb,
+.notes-list::-webkit-scrollbar-thumb,
+.characters-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover,
+.outline-list::-webkit-scrollbar-thumb:hover,
+.notes-list::-webkit-scrollbar-thumb:hover,
+.characters-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Typographie améliorée */
+.cm-content {
+    font-feature-settings: "liga" 1, "calt" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+}
+
+/* Indicateurs de progression */
+.progress {
+    height: 4px;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+/* États des boutons */
+.btn.active {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+/* Tooltips personnalisés */
+[title] {
+    position: relative;
+}
+
+/* Focus visible amélioré */
+.btn:focus-visible,
+.nav-link:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+} 

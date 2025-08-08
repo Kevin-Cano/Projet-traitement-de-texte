@@ -1,0 +1,314 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Moodboards de {{ livre.titre }} - Écriture de Livre{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item active">Moodboards</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-images me-2 text-info"></i>
+            Moodboards de "{{ livre.titre }}"
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_moodboard_new', {livreId: livre.id}) }}" class="btn btn-info">
+                <i class="bi bi-plus-circle me-2"></i>Nouveau Moodboard
+            </a>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_livre_show', {id: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour au livre
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if moodboards|length > 0 %}
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-collection-fill display-4 mb-2"></i>
+                    <h3>{{ moodboards|length }}</h3>
+                    <p class="mb-0">Moodboard{{ moodboards|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-image-fill display-4 mb-2"></i>
+                    <h3>{{ totalImages }}</h3>
+                    <p class="mb-0">Image{{ totalImages > 1 ? 's' : '' }} total{{ totalImages > 1 ? 'es' : 'e' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-palette-fill display-4 mb-2"></i>
+                    <h3>
+                        {% set types = {} %}
+                        {% for moodboard in moodboards %}
+                            {% set type = moodboard.type|default('general') %}
+                            {% set types = types|merge({(type): (types[type]|default(0) + 1)}) %}
+                        {% endfor %}
+                        {{ types|length }}
+                    </h3>
+                    <p class="mb-0">Type{{ types|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des moodboards -->
+    <div class="row">
+        {% for moodboard in moodboards %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 moodboard-card">
+                    <div class="moodboard-preview">
+                        {% if moodboard.images is defined and moodboard.images|length > 0 %}
+                            <!-- Affichage des 4 premières images en mosaïque -->
+                            <div class="image-mosaic">
+                                {% for image in moodboard.images|slice(0, 4) %}
+                                    <div class="mosaic-item mosaic-item-{{ loop.index }}">
+                                        <img src="/{{ image.chemin }}" alt="{{ image.description ?? image.nom_original }}" class="img-fluid">
+                                        {% if loop.index == 4 and moodboard.images|length > 4 %}
+                                            <div class="overlay-more">
+                                                <span class="more-count">+{{ moodboard.images|length - 4 }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <!-- Placeholder vide -->
+                            <div class="empty-moodboard">
+                                <i class="bi bi-images display-1 text-muted"></i>
+                                <p class="text-muted">Aucune image</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0">{{ moodboard.nom }}</h5>
+                            <span class="badge bg-info">{{ moodboard.type|title }}</span>
+                        </div>
+                        
+                        {% if moodboard.description is defined and moodboard.description %}
+                            <p class="card-text text-muted small">
+                                {{ moodboard.description|length > 80 ? 
+                                   moodboard.description|slice(0, 80) ~ '...' : 
+                                   moodboard.description }}
+                            </p>
+                        {% endif %}
+                        
+                        <!-- Informations -->
+                        <div class="moodboard-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-image me-1"></i>
+                                    {{ moodboard.images is defined ? moodboard.images|length : 0 }} image{{ (moodboard.images is defined and moodboard.images|length > 1) ? 's' : '' }}
+                                </small>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar3 me-1"></i>
+                                    {{ moodboard.dateCreation is defined ? 
+                                       moodboard.dateCreation|date('d/m/Y') : 'N/A' }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" 
+                                   class="btn btn-outline-info" title="Voir le moodboard">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_moodboard_edit', {id: moodboard.id}) }}" 
+                                   class="btn btn-outline-primary" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="confirmDelete({{ moodboard.id }}, '{{ moodboard.nom|e('js') }}')" 
+                                        title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                            <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" class="btn btn-info btn-sm">
+                                <i class="bi bi-arrow-right me-1"></i>Ouvrir
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <!-- État vide -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-5">
+                    <i class="bi bi-images display-1 text-info mb-4"></i>
+                    <h3 class="text-muted">Aucun moodboard pour le moment</h3>
+                    <p class="text-muted mb-4">
+                        Créez des tableaux visuels pour organiser vos images par thème.<br>
+                        Parfait pour visualiser des lieux, des personnages ou des ambiances.
+                    </p>
+                    <a href="{{ path('app_moodboard_new', {livreId: livre.id}) }}" class="btn btn-info btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer le premier moodboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le moodboard <strong id="moodboardNom"></strong> ?</p>
+                <p class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Cette action supprimera également toutes les images associées de manière définitive.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .moodboard-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+    }
+
+    .moodboard-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .moodboard-preview {
+        height: 200px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Mosaïque d'images */
+    .image-mosaic {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        height: 100%;
+        gap: 2px;
+    }
+
+    .mosaic-item {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .mosaic-item-1 {
+        grid-row: 1 / 3;
+    }
+
+    .mosaic-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .mosaic-item:hover img {
+        transform: scale(1.05);
+    }
+
+    .overlay-more {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+
+    .more-count {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* État vide */
+    .empty-moodboard {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        color: #6c757d;
+    }
+
+    .moodboard-info {
+        border-top: 1px solid #e9ecef;
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .moodboard-preview {
+            height: 150px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function confirmDelete(moodboardId, moodboardNom) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        const nomElement = document.getElementById('moodboardNom');
+        
+        form.action = `/moodboard/${moodboardId}/supprimer`;
+        nomElement.textContent = moodboardNom;
+        
+        modal.show();
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,349 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Personnages de {{ livre.titre }} - Écriture de Livre{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item active">Personnages</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-people me-2 text-success"></i>
+            Personnages de "{{ livre.titre }}"
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_personnage_new', {livreId: livre.id}) }}" class="btn btn-success">
+                <i class="bi bi-person-plus me-2"></i>Nouveau Personnage
+            </a>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_livre_show', {id: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour au livre
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if personnages|length > 0 %}
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-people-fill display-4 mb-2"></i>
+                    <h3>{{ personnages|length }}</h3>
+                    <p class="mb-0">Personnage{{ personnages|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-gender-ambiguous display-4 mb-2"></i>
+                    <h3>
+                        {% set genres = {} %}
+                        {% for personnage in personnages %}
+                            {% set genre = personnage.genre|default('Non défini') %}
+                            {% set genres = genres|merge({(genre): (genres[genre]|default(0) + 1)}) %}
+                        {% endfor %}
+                        {{ genres|length }}
+                    </h3>
+                    <p class="mb-0">Genre{{ genres|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-star-fill display-4 mb-2"></i>
+                    <h3>
+                        {% set roles = [] %}
+                        {% for personnage in personnages %}
+                            {% if personnage.role is defined and personnage.role %}
+                                {% set roles = roles|merge([personnage.role]) %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ roles|length }}
+                    </h3>
+                    <p class="mb-0">Rôle{{ roles|length > 1 ? 's' : '' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="bi bi-calendar-fill display-4 mb-2"></i>
+                    <h3>
+                        {% set ages = 0 %}
+                        {% set count = 0 %}
+                        {% for personnage in personnages %}
+                            {% if personnage.age %}
+                                {% set age_num = personnage.age|replace({' ans': '', ' an': ''})|trim %}
+                                {% if age_num matches '/^\\d+$/' %}
+                                    {% set ages = ages + age_num %}
+                                    {% set count = count + 1 %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ count > 0 ? (ages / count)|round : 0 }}
+                    </h3>
+                    <p class="mb-0">Âge moyen</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des personnages -->
+    <div class="row">
+        {% for personnage in personnages %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 character-card">
+                    <div class="card-header bg-transparent border-0 text-center">
+                        <!-- Avatar/Photo -->
+                        <div class="character-avatar mx-auto mb-3">
+                            {% if personnage.photo is defined and personnage.photo %}
+                                <!-- Photo du personnage -->
+                                <img class="character-mini-photo rounded-circle" 
+                                     style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1);" 
+                                     src="/{{ personnage.photo }}" alt="Photo de {{ personnage.nom }}">
+                            {% else %}
+                                <!-- Avatar par défaut avec initiales -->
+                                <div class="avatar-placeholder bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold;">
+                                    {{ personnage.prenom is defined and personnage.prenom ? 
+                                       personnage.prenom|slice(0, 1)|upper : 
+                                       personnage.nom|slice(0, 1)|upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Nom et informations de base -->
+                        <h5 class="card-title text-success mb-1">
+                            {% if personnage.prenom is defined and personnage.prenom %}
+                                {{ personnage.prenom }} {{ personnage.nom|upper }}
+                            {% else %}
+                                {{ personnage.nom|upper }}
+                            {% endif %}
+                        </h5>
+                        
+                        <div class="character-info">
+                                                    {% if personnage.age is defined and personnage.age %}
+                            <span class="badge bg-secondary me-1">{{ personnage.age }}</span>
+                        {% endif %}
+                            {% if personnage.genre is defined and personnage.genre != 'Non défini' %}
+                                <span class="badge bg-info me-1">{{ personnage.genre }}</span>
+                            {% endif %}
+                            {% if personnage.role is defined and personnage.role %}
+                                <span class="badge bg-warning">{{ personnage.role }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Description courte -->
+                        {% if personnage.description is defined and personnage.description %}
+                            <p class="card-text text-muted small">
+                                {{ personnage.description|length > 100 ? 
+                                   personnage.description|slice(0, 100) ~ '...' : 
+                                   personnage.description }}
+                            </p>
+                        {% endif %}
+                        
+                        <!-- Compétences principales (aperçu) -->
+                        <div class="character-skills-preview">
+                            <h6 class="text-muted mb-2">Compétences principales</h6>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted">Force</small>
+                                    <div class="skill-dots">
+                                        {% for i in 1..5 %}
+                                            <span class="skill-dot {{ (personnage.force|default(3)) >= i ? 'filled' : '' }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Intelligence</small>
+                                    <div class="skill-dots">
+                                        {% for i in 1..5 %}
+                                            <span class="skill-dot {{ (personnage.intelligence|default(3)) >= i ? 'filled' : '' }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row text-center mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">Charisme</small>
+                                    <div class="skill-dots">
+                                        {% for i in 1..5 %}
+                                            <span class="skill-dot {{ (personnage.charisme|default(3)) >= i ? 'filled' : '' }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Combat</small>
+                                    <div class="skill-dots">
+                                        {% for i in 1..5 %}
+                                            <span class="skill-dot {{ (personnage.combat|default(3)) >= i ? 'filled' : '' }}"></span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent border-0">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                {{ personnage.dateCreation is defined ? 
+                                   personnage.dateCreation|date('d/m/Y') : 'N/A' }}
+                            </small>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ path('app_personnage_show', {id: personnage.id}) }}" 
+                                   class="btn btn-outline-success" title="Voir la fiche">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ path('app_personnage_edit', {id: personnage.id}) }}" 
+                                   class="btn btn-outline-primary" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="confirmDelete({{ personnage.id }}, '{{ personnage.nom|e('js') }}')" 
+                                        title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <!-- État vide -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-5">
+                    <i class="bi bi-people display-1 text-success mb-4"></i>
+                    <h3 class="text-muted">Aucun personnage pour le moment</h3>
+                    <p class="text-muted mb-4">
+                        Commencez à créer l'univers de votre livre en ajoutant vos personnages.<br>
+                        Définissez leurs caractéristiques, personnalités et rôles dans l'histoire.
+                    </p>
+                    <a href="{{ path('app_personnage_new', {livreId: livre.id}) }}" class="btn btn-success btn-lg">
+                        <i class="bi bi-person-plus me-2"></i>
+                        Créer le premier personnage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le personnage <strong id="personnageNom"></strong> ?</p>
+                <p class="text-muted">Cette action est irréversible et supprimera toutes les informations du personnage.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .character-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .character-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .character-avatar {
+        position: relative;
+    }
+
+    .avatar-placeholder {
+        border: 3px solid #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .character-info {
+        margin-top: 0.5rem;
+    }
+
+    .character-skills-preview {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .skill-dots {
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+        margin-top: 2px;
+    }
+
+    .skill-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        display: inline-block;
+    }
+
+    .skill-dot.filled {
+        background-color: #ffab40;
+    }
+
+    @media (max-width: 768px) {
+        .character-skills-preview .row {
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function confirmDelete(personnageId, personnageNom) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        const nomElement = document.getElementById('personnageNom');
+        
+        form.action = `/personnage/${personnageId}/supprimer`;
+        nomElement.textContent = personnageNom;
+        
+        modal.show();
+    }
+</script>
+{% endblock %} 

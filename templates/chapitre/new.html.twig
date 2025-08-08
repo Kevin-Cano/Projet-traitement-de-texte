@@ -1,0 +1,172 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Chapitre - {{ livre.titre }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}">Chapitres</a></li>
+                <li class="breadcrumb-item active">Nouveau chapitre</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-plus-circle me-2 text-primary"></i>
+            Nouveau Chapitre
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour aux chapitres
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Créer un nouveau chapitre pour "{{ livre.titre }}"</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-4">
+                        <label for="titre" class="form-label">Titre du chapitre *</label>
+                        <input type="text" class="form-control form-control-lg" id="titre" name="titre" 
+                               value="{{ chapitre.titre ?? '' }}" required
+                               placeholder="Ex: Chapitre 1 - Le commencement">
+                        <div class="form-text">Donnez un titre évocateur à votre chapitre</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="contenu" class="form-label">Contenu du chapitre</label>
+                        <div class="border rounded">
+                            <!-- Barre d'outils simple -->
+                            <div class="border-bottom p-2 bg-light">
+                                <div class="btn-group btn-group-sm me-2">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('bold')" title="Gras">
+                                        <i class="bi bi-type-bold"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('italic')" title="Italique">
+                                        <i class="bi bi-type-italic"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="formatText('underline')" title="Souligné">
+                                        <i class="bi bi-type-underline"></i>
+                                    </button>
+                                </div>
+                                <div class="btn-group btn-group-sm me-2">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="insertText('---')" title="Séparateur">
+                                        <i class="bi bi-dash-lg"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="insertText('« »')" title="Guillemets">
+                                        <i class="bi bi-quote"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <textarea class="form-control border-0 rounded-0" id="contenu" name="contenu" 
+                                      rows="15" style="resize: vertical; min-height: 400px;"
+                                      placeholder="Commencez à écrire votre chapitre ici...">{{ chapitre.contenu ?? '' }}</textarea>
+                        </div>
+                        <div class="form-text">
+                            <span id="wordCount">0</span> mots • 
+                            <span id="charCount">0</span> caractères
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Annuler
+                            </a>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save me-2"></i>Créer et continuer à écrire
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    // Compteur de mots et caractères
+    function updateWordCount() {
+        const contenu = document.getElementById('contenu').value;
+        const words = contenu.trim() === '' ? 0 : contenu.trim().split(/\s+/).length;
+        const chars = contenu.length;
+        
+        document.getElementById('wordCount').textContent = words;
+        document.getElementById('charCount').textContent = chars;
+    }
+
+    // Formatage de texte basique
+    function formatText(command) {
+        const textarea = document.getElementById('contenu');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+        
+        let formattedText = '';
+        switch(command) {
+            case 'bold':
+                formattedText = `**${selectedText}**`;
+                break;
+            case 'italic':
+                formattedText = `*${selectedText}*`;
+                break;
+            case 'underline':
+                formattedText = `_${selectedText}_`;
+                break;
+        }
+        
+        if (selectedText) {
+            textarea.value = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start, start + formattedText.length);
+        } else {
+            textarea.focus();
+        }
+        
+        updateWordCount();
+    }
+
+    // Insertion de texte
+    function insertText(text) {
+        const textarea = document.getElementById('contenu');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+        
+        updateWordCount();
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', function() {
+        const contenuTextarea = document.getElementById('contenu');
+        
+        // Mise à jour du compteur au chargement et à chaque modification
+        updateWordCount();
+        contenuTextarea.addEventListener('input', updateWordCount);
+        
+        // Auto-focus sur le titre si vide, sinon sur le contenu
+        const titreInput = document.getElementById('titre');
+        if (!titreInput.value.trim()) {
+            titreInput.focus();
+        } else {
+            contenuTextarea.focus();
+        }
+    });
+</script>
+{% endblock %} 

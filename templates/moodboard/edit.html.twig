@@ -1,0 +1,148 @@
+{% extends 'moodboard/new.html.twig' %}
+
+{% block title %}Modifier {{ moodboard.nom }} - {{ livre.titre }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}">Moodboards</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}">{{ moodboard.nom }}</a></li>
+                <li class="breadcrumb-item active">Modifier</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-pencil me-2 text-primary"></i>
+            Modifier "{{ moodboard.nom }}"
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-eye me-2"></i>Voir le moodboard
+            </a>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour aux moodboards
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-pencil me-2"></i>
+                    Modifier les informations
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-4">
+                        <label for="nom" class="form-label">Nom du moodboard *</label>
+                        <input type="text" class="form-control form-control-lg" id="nom" name="nom" 
+                               value="{{ moodboard.nom ?? '' }}" required
+                               placeholder="Ex: Château de Poudlard, Personnage principal, Ambiance sombre...">
+                        <div class="form-text">Donnez un nom évocateur à votre collection d'images</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="type" class="form-label">Type de moodboard</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="general" {{ (moodboard.type ?? 'general') == 'general' ? 'selected' : '' }}>Général</option>
+                            <option value="lieu" {{ (moodboard.type ?? '') == 'lieu' ? 'selected' : '' }}>Lieu / Décor</option>
+                            <option value="personnage" {{ (moodboard.type ?? '') == 'personnage' ? 'selected' : '' }}>Personnage</option>
+                            <option value="ambiance" {{ (moodboard.type ?? '') == 'ambiance' ? 'selected' : '' }}>Ambiance / Mood</option>
+                            <option value="scene" {{ (moodboard.type ?? '') == 'scene' ? 'selected' : '' }}>Scène spécifique</option>
+                            <option value="concept" {{ (moodboard.type ?? '') == 'concept' ? 'selected' : '' }}>Concept / Idée</option>
+                        </select>
+                        <div class="form-text">Catégorisez votre moodboard pour mieux l'organiser</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Décrivez l'objectif de ce moodboard...">{{ moodboard.description ?? '' }}</textarea>
+                        <div class="form-text">Expliquez ce que ce moodboard représente dans votre histoire</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" class="btn btn-outline-secondary me-2">
+                                <i class="bi bi-x-circle me-2"></i>Annuler
+                            </a>
+                            <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-list me-2"></i>Tous les moodboards
+                            </a>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save me-2"></i>Sauvegarder les modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informations sur le moodboard -->
+        <div class="card mt-4 border-0 bg-light">
+            <div class="card-body">
+                <h6 class="text-primary mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Informations du moodboard
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Nombre d'images:</strong> {{ moodboard.images is defined ? moodboard.images|length : 0 }}</p>
+                        <p class="mb-1"><strong>Date de création:</strong> 
+                            {{ moodboard.dateCreation is defined ? moodboard.dateCreation|date('d/m/Y à H:i') : 'Non définie' }}
+                        </p>
+                        {% if moodboard.dateModification is defined and moodboard.dateModification %}
+                            <p class="mb-1"><strong>Dernière modification:</strong> 
+                                {{ moodboard.dateModification|date('d/m/Y à H:i') }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <a href="{{ path('app_moodboard_show', {id: moodboard.id}) }}" class="btn btn-info">
+                                <i class="bi bi-images me-2"></i>Gérer les images
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #004085;
+        transform: translateY(-1px);
+    }
+
+    .card-header.bg-primary {
+        background-color: #007bff !important;
+    }
+
+    .text-primary {
+        color: #007bff !important;
+    }
+</style>
+{% endblock %} 

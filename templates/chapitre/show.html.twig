@@ -1,0 +1,399 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ chapitre.titre }} - Lecture{% endblock %}
+
+{% block body %}
+<!-- Mode lecture -->
+<div class="reading-interface">
+    <!-- Header de lecture -->
+    <div class="reading-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center py-3">
+                <div class="d-flex align-items-center">
+                    <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-sm btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Chapitres
+                    </a>
+                    <div>
+                        <h6 class="mb-0">{{ livre.titre }}</h6>
+                        <small class="text-muted">Chapitre {{ chapitre.ordre|default('?') }}</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Statistiques -->
+                    <div class="me-3 text-muted small">
+                        {{ chapitre.nombreMots|default(0) }} mots • 
+                        {{ ((chapitre.nombreMots|default(0)) / 200)|round }} min de lecture
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ path('app_chapitre_edit', {id: chapitre.id}) }}" class="btn btn-primary" title="Modifier">
+                            <i class="bi bi-pencil-square"></i> Écrire
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" title="Options">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="toggleReadingMode()">
+                                <i class="bi bi-eye me-2"></i>Mode plein écran
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="changeFontSize('increase')">
+                                <i class="bi bi-plus-circle me-2"></i>Agrandir texte
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="changeFontSize('decrease')">
+                                <i class="bi bi-dash-circle me-2"></i>Réduire texte
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="printChapter()">
+                                <i class="bi bi-printer me-2"></i>Imprimer
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu de lecture -->
+    <div class="reading-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-8 col-lg-10">
+                    <article class="chapter-article">
+                        <!-- Titre du chapitre -->
+                        <header class="chapter-header">
+                            <h1 class="chapter-title">{{ chapitre.titre }}</h1>
+                            <div class="chapter-meta">
+                                <span class="badge bg-secondary me-2">Chapitre {{ chapitre.ordre|default('?') }}</span>
+                                <small class="text-muted">
+                                    {{ chapitre.nombreMots|default(0) }} mots • 
+                                    {{ ((chapitre.nombreMots|default(0)) / 200)|round }} minutes de lecture
+                                </small>
+                            </div>
+                        </header>
+
+                        <!-- Contenu du chapitre -->
+                        <div class="chapter-content" id="chapterContent">
+                            {% if chapitre.contenu %}
+                                {{ chapitre.contenu|markdown }}
+                            {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-file-text display-4 mb-3"></i>
+                                    <h4>Chapitre vide</h4>
+                                    <p>Ce chapitre n'a pas encore de contenu.</p>
+                                    <a href="{{ path('app_chapitre_edit', {id: chapitre.id}) }}" class="btn btn-primary">
+                                        <i class="bi bi-pencil-square me-2"></i>Commencer à écrire
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Navigation entre chapitres -->
+                        <nav class="chapter-navigation">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    {% if livre.chapitres is defined and livre.chapitres %}
+                                        {% set previousChapter = null %}
+                                        {% for c in livre.chapitres %}
+                                            {% if (c.ordre|default(999)) < (chapitre.ordre|default(999)) %}
+                                                {% set previousChapter = c %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if previousChapter %}
+                                            <a href="{{ path('app_chapitre_show', {id: previousChapter.id}) }}" class="btn btn-outline-primary">
+                                                <i class="bi bi-chevron-left me-2"></i>{{ previousChapter.titre }}
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                
+                                <div>
+                                    <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-list me-2"></i>Tous les chapitres
+                                    </a>
+                                </div>
+                                
+                                <div>
+                                    {% if livre.chapitres is defined and livre.chapitres %}
+                                        {% set nextChapter = null %}
+                                        {% for c in livre.chapitres %}
+                                            {% if (c.ordre|default(999)) > (chapitre.ordre|default(999)) and nextChapter is null %}
+                                                {% set nextChapter = c %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if nextChapter %}
+                                            <a href="{{ path('app_chapitre_show', {id: nextChapter.id}) }}" class="btn btn-outline-primary">
+                                                {{ nextChapter.titre }}<i class="bi bi-chevron-right ms-2"></i>
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </nav>
+                    </article>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informations du chapitre -->
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Informations</h6>
+                            <p class="mb-1"><strong>Ordre:</strong> {{ chapitre.ordre|default('Non défini') }}</p>
+                            <p class="mb-1"><strong>Nombre de mots:</strong> {{ chapitre.nombreMots|default(0) }}</p>
+                            <p class="mb-1"><strong>Date de création:</strong> 
+                                {{ chapitre.dateCreation is defined ? chapitre.dateCreation|date('d/m/Y à H:i') : 'Non définie' }}
+                            </p>
+                            {% if chapitre.dateModification is defined and chapitre.dateModification %}
+                                <p class="mb-1"><strong>Dernière modification:</strong> 
+                                    {{ chapitre.dateModification|date('d/m/Y à H:i') }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Actions</h6>
+                            <div class="d-grid gap-2">
+                                <a href="{{ path('app_chapitre_edit', {id: chapitre.id}) }}" class="btn btn-primary">
+                                    <i class="bi bi-pencil-square me-2"></i>Modifier ce chapitre
+                                </a>
+                                <a href="{{ path('app_chapitre_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-list me-2"></i>Tous les chapitres
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .reading-interface {
+        min-height: 100vh;
+        background: #f8f9fa;
+    }
+
+    .reading-header {
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .reading-content {
+        padding: 3rem 0;
+    }
+
+    .chapter-article {
+        background: white;
+        border-radius: 12px;
+        padding: 3rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+    }
+
+    .chapter-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .chapter-title {
+        font-size: 2.5rem;
+        font-weight: 300;
+        color: #212529;
+        margin-bottom: 1rem;
+        font-family: 'Georgia', serif;
+    }
+
+    .chapter-meta {
+        margin-bottom: 1rem;
+    }
+
+    .chapter-content {
+        font-family: 'Georgia', serif;
+        font-size: 1.2rem;
+        line-height: 1.8;
+        color: #333;
+        text-align: justify;
+        margin-bottom: 3rem;
+    }
+
+    .chapter-content p {
+        margin-bottom: 1.5rem;
+    }
+
+    .chapter-content strong {
+        font-weight: bold;
+    }
+
+    .chapter-content em {
+        font-style: italic;
+    }
+
+    .chapter-content u {
+        text-decoration: underline;
+    }
+
+    .chapter-content hr {
+        margin: 2rem 0;
+        border: none;
+        border-top: 3px solid #e9ecef;
+        text-align: center;
+    }
+
+    .chapter-content .dialogue {
+        margin: 1rem 0;
+        padding-left: 2rem;
+        font-style: italic;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .chapter-navigation {
+        padding-top: 2rem;
+        border-top: 1px solid #e9ecef;
+        margin-top: 2rem;
+    }
+
+    /* Mode plein écran pour la lecture */
+    .fullscreen-reading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        background: white;
+        overflow-y: auto;
+    }
+
+    .fullscreen-reading .reading-content {
+        padding: 1rem 0;
+    }
+
+    .fullscreen-reading .chapter-article {
+        margin: 0;
+        border-radius: 0;
+        min-height: 100vh;
+        box-shadow: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chapter-article {
+            padding: 1.5rem;
+        }
+        
+        .chapter-title {
+            font-size: 1.8rem;
+        }
+        
+        .chapter-content {
+            font-size: 1.1rem;
+            text-align: left;
+        }
+        
+        .chapter-navigation .d-flex {
+            flex-direction: column;
+            gap: 1rem;
+        }
+    }
+
+    /* Impression */
+    @media print {
+        .reading-header,
+        .chapter-navigation,
+        .container.mt-5 {
+            display: none !important;
+        }
+        
+        .chapter-article {
+            box-shadow: none;
+            border: none;
+            padding: 0;
+        }
+        
+        .chapter-content {
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    let currentFontSize = 1.2; // rem
+
+    // Mode plein écran pour la lecture
+    function toggleReadingMode() {
+        const readingInterface = document.querySelector('.reading-interface');
+        readingInterface.classList.toggle('fullscreen-reading');
+        
+        // Changer le texte du bouton
+        const button = event.target.closest('a');
+        if (readingInterface.classList.contains('fullscreen-reading')) {
+            button.innerHTML = '<i class="bi bi-fullscreen-exit me-2"></i>Sortir plein écran';
+        } else {
+            button.innerHTML = '<i class="bi bi-eye me-2"></i>Mode plein écran';
+        }
+    }
+
+    // Changer la taille de la police
+    function changeFontSize(action) {
+        const content = document.getElementById('chapterContent');
+        
+        if (action === 'increase') {
+            currentFontSize += 0.1;
+        } else if (action === 'decrease') {
+            currentFontSize = Math.max(0.8, currentFontSize - 0.1);
+        }
+        
+        content.style.fontSize = currentFontSize + 'rem';
+    }
+
+    // Imprimer le chapitre
+    function printChapter() {
+        window.print();
+    }
+
+    // Raccourcis clavier
+    document.addEventListener('keydown', function(e) {
+        // Échap pour sortir du plein écran
+        if (e.key === 'Escape') {
+            const readingInterface = document.querySelector('.reading-interface');
+            readingInterface.classList.remove('fullscreen-reading');
+        }
+        
+        // + pour agrandir
+        if (e.key === '+' || e.key === '=') {
+            e.preventDefault();
+            changeFontSize('increase');
+        }
+        
+        // - pour réduire
+        if (e.key === '-') {
+            e.preventDefault();
+        }
+        
+        // Ctrl+P pour imprimer
+        if (e.ctrlKey && e.key === 'p') {
+            e.preventDefault();
+            printChapter();
+        }
+    });
+</script>
+{% endblock %} 

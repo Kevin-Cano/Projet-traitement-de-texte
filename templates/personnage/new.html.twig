@@ -1,0 +1,608 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau Personnage - {{ livre.titre }}{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_personnage_index', {livreId: livre.id}) }}">Personnages</a></li>
+                <li class="breadcrumb-item active">Nouveau personnage</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-person-plus me-2 text-success"></i>
+            Nouveau Personnage
+        </h1>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Retour aux personnages
+        </a>
+    </div>
+</div>
+
+<form method="post" id="personnageForm" enctype="multipart/form-data">
+    <div class="row">
+        <!-- Colonne gauche: Informations de base -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-badge me-2"></i>
+                        Informations de base
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Avatar/Photo -->
+                    <div class="text-center mb-4">
+                        <div class="character-avatar-large mx-auto mb-3" id="avatarContainer">
+                            <div class="avatar-placeholder bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 120px; height: 120px; font-size: 3rem; font-weight: bold;" id="avatarPreview">
+                                ?
+                            </div>
+                            <!-- Image preview (cachée par défaut) -->
+                            <img id="imagePreview" class="avatar-image rounded-circle" 
+                                 style="width: 120px; height: 120px; object-fit: cover; display: none;" src="" alt="Photo du personnage">
+                        </div>
+                        
+                        <!-- Upload d'image -->
+                        <div class="photo-upload">
+                            <input type="file" class="form-control d-none" id="photo" name="photo" accept="image/*">
+                            
+                            <!-- Boutons pour nouveau personnage sans photo -->
+                            <div class="btn-group" id="noPhotoButtons">
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('photo').click()">
+                                    <i class="bi bi-camera me-2"></i>Ajouter une photo
+                                </button>
+                            </div>
+                            
+                            <!-- Boutons après sélection d'une photo -->
+                            <div class="btn-group d-none" id="selectedPhotoButtons">
+                                <button type="button" class="btn btn-outline-success btn-sm" disabled>
+                                    <i class="bi bi-check me-2"></i>Photo sélectionnée
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="removePhoto()">
+                                    <i class="bi bi-x me-2"></i>Supprimer
+                                </button>
+                            </div>
+                            
+                            <div class="form-text mt-2" id="uploadHint">JPG, PNG, GIF (max 5 Mo)</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" 
+                               value="{{ personnage.nom ?? '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="prenom" class="form-label">Prénom</label>
+                        <input type="text" class="form-control" id="prenom" name="prenom" 
+                               value="{{ personnage.prenom ?? '' }}">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="age" class="form-label">Âge</label>
+                                <input type="number" class="form-control" id="age" name="age" 
+                                       value="{{ personnage.age ?? 25 }}" min="0" max="200">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="genre" class="form-label">Genre</label>
+                                <select class="form-select" id="genre" name="genre">
+                                    <option value="Non défini" {{ (personnage.genre ?? 'Non défini') == 'Non défini' ? 'selected' : '' }}>Non défini</option>
+                                    <option value="Masculin" {{ (personnage.genre ?? '') == 'Masculin' ? 'selected' : '' }}>Masculin</option>
+                                    <option value="Féminin" {{ (personnage.genre ?? '') == 'Féminin' ? 'selected' : '' }}>Féminin</option>
+                                    <option value="Non-binaire" {{ (personnage.genre ?? '') == 'Non-binaire' ? 'selected' : '' }}>Non-binaire</option>
+                                    <option value="Autre" {{ (personnage.genre ?? '') == 'Autre' ? 'selected' : '' }}>Autre</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Rôle dans l'histoire</label>
+                        <input type="text" class="form-control" id="role" name="role" 
+                               value="{{ personnage.role ?? '' }}" 
+                               placeholder="Ex: Protagoniste, Antagoniste, Allié...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4"
+                                  placeholder="Description générale du personnage...">{{ personnage.description ?? '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite: Caractéristiques -->
+        <div class="col-lg-8">
+            <!-- Compétences physiques -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning-charge me-2"></i>
+                        Compétences physiques
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('force', 'Force', personnage.force ?? 3) }}
+                            {{ _self.renderSkill('dexterite', 'Dextérité', personnage.dexterite ?? 3) }}
+                            {{ _self.renderSkill('sante', 'Santé', personnage.sante ?? 3) }}
+                            {{ _self.renderSkill('energie', 'Énergie', personnage.energie ?? 3) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('beaute', 'Beauté', personnage.beaute ?? 3) }}
+                            {{ _self.renderSkill('style', 'Style', personnage.style ?? 3) }}
+                            {{ _self.renderSkill('combat', 'Combat', personnage.combat ?? 3) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compétences intellectuelles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Compétences intellectuelles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('intelligence', 'Intelligence', personnage.intelligence ?? 3) }}
+                            {{ _self.renderSkill('persuasion', 'Persuasion', personnage.persuasion ?? 3) }}
+                            {{ _self.renderSkill('communication', 'Communication', personnage.communication ?? 3) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('creative', 'Créativité', personnage.creative ?? 3) }}
+                            {{ _self.renderSkill('analyse', 'Analyse', personnage.analyse ?? 3) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compétences personnelles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-gear me-2"></i>
+                        Compétences personnelles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('discretion', 'Discrétion', personnage.discretion ?? 3) }}
+                            {{ _self.renderSkill('debrouillardise', 'Débrouillardise', personnage.debrouillardise ?? 3) }}
+                            {{ _self.renderSkill('seduction', 'Séduction', personnage.seduction ?? 3) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('survie', 'Survie', personnage.survie ?? 3) }}
+                            {{ _self.renderSkill('intuition', 'Intuition', personnage.intuition ?? 3) }}
+                            {{ _self.renderSkill('mediation', 'Médiation', personnage.mediation ?? 3) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Traits de personnalité -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-emoji-smile me-2"></i>
+                        Traits de personnalité
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderTrait('gentillesse', 'Gentil', 'Méchant', personnage.gentillesse ?? 0) }}
+                            {{ _self.renderTrait('courage', 'Courageux', 'Lâche', personnage.courage ?? 0) }}
+                            {{ _self.renderTrait('pacifisme', 'Pacifiste', 'Violent', personnage.pacifisme ?? 0) }}
+                            {{ _self.renderTrait('reflexion', 'Réfléchi', 'Impulsif', personnage.reflexion ?? 0) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderTrait('amabilite', 'Aimable', 'Désagréable', personnage.amabilite ?? 0) }}
+                            {{ _self.renderTrait('idealisme', 'Idéaliste', 'Pragmatique', personnage.idealisme ?? 0) }}
+                            {{ _self.renderTrait('sociabilite', 'Introverti', 'Extraverti', personnage.sociabilite ?? 0) }}
+                            {{ _self.renderTrait('temperament', 'Calme', 'Turbulent', personnage.temperament ?? 0) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compétences interpersonnelles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-people-fill me-2"></i>
+                        Compétences interpersonnelles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('charisme', 'Charisme', personnage.charisme ?? 3) }}
+                            {{ _self.renderSkill('empathie', 'Empathie', personnage.empathie ?? 3) }}
+                            {{ _self.renderSkill('generosite', 'Générosité', personnage.generosite ?? 3) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('libido', 'Libido', personnage.libido ?? 3) }}
+                            {{ _self.renderSkill('flirteur', 'Flirteur', personnage.flirteur ?? 3) }}
+                            {{ _self.renderSkill('humour', 'Humour', personnage.humour ?? 3) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priorités interpersonnelles -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-heart me-2"></i>
+                        Priorités interpersonnelles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderTrait('optimisme', 'Optimiste', 'Pessimiste', personnage.optimisme ?? 0) }}
+                            {{ _self.renderTrait('altruisme', 'Altruiste', 'Égoïste', personnage.altruisme ?? 0) }}
+                            {{ _self.renderTrait('honnete', 'Honnête', 'Menteur', personnage.honnete ?? 0) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderTrait('leadership', 'Leader', 'Suiveur', personnage.leadership ?? 0) }}
+                            {{ _self.renderTrait('politesse', 'Poli', 'Grossier', personnage.politesse ?? 0) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Priorités de vie -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-star me-2"></i>
+                        Priorités de vie
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('famille', 'Famille', personnage.famille ?? 3) }}
+                            {{ _self.renderSkill('amis', 'Amis', personnage.amis ?? 3) }}
+                            {{ _self.renderSkill('amour', 'Amour', personnage.amour ?? 3) }}
+                            {{ _self.renderSkill('soi_meme', 'Soi-même', personnage.soi_meme ?? 3) }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ _self.renderSkill('justice', 'Justice', personnage.justice ?? 3) }}
+                            {{ _self.renderSkill('verite', 'Vérité', personnage.verite ?? 3) }}
+                            {{ _self.renderSkill('pouvoir', 'Pouvoir', personnage.pouvoir ?? 3) }}
+                            {{ _self.renderSkill('richesse', 'Richesse', personnage.richesse ?? 3) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ path('app_personnage_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Annuler
+                            </a>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-save me-2"></i>Créer le personnage
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% macro renderSkill(name, label, value) %}
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <label class="form-label mb-0">{{ label }}</label>
+        <span class="skill-value badge bg-primary" id="{{ name }}_value">{{ value }}/5</span>
+    </div>
+    <div class="skill-dots-input" data-skill="{{ name }}" data-value="{{ value }}">
+        {% for i in 1..5 %}
+            <span class="skill-dot-input {{ i <= value ? 'filled' : '' }}" data-value="{{ i }}"></span>
+        {% endfor %}
+    </div>
+    <input type="hidden" name="{{ name }}" id="{{ name }}" value="{{ value }}">
+</div>
+{% endmacro %}
+
+{% macro renderTrait(name, leftLabel, rightLabel, value) %}
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">{{ leftLabel }}</small>
+        <label class="form-label mb-0 text-center">{{ leftLabel }} ↔ {{ rightLabel }}</label>
+        <small class="text-muted">{{ rightLabel }}</small>
+    </div>
+    <div class="trait-slider-container">
+        <input type="range" class="form-range trait-slider" name="{{ name }}" id="{{ name }}" 
+               min="-5" max="5" value="{{ value }}" step="1">
+        <div class="trait-value" id="{{ name }}_value">{{ value }}</div>
+    </div>
+</div>
+{% endmacro %}
+
+{% block stylesheets %}
+<style>
+    .skill-dots-input {
+        display: flex;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .skill-dot-input {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        border: 2px solid #adb5bd;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .skill-dot-input.filled {
+        background-color: #28a745;
+        border-color: #1e7e34;
+    }
+
+    .skill-dot-input:hover {
+        transform: scale(1.1);
+        border-color: #28a745;
+    }
+
+    .skill-value {
+        min-width: 45px;
+        text-align: center;
+    }
+
+    .trait-slider-container {
+        position: relative;
+        padding: 10px 0;
+    }
+
+    .trait-slider {
+        width: 100%;
+    }
+
+    .trait-value {
+        position: absolute;
+        top: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        min-width: 25px;
+        text-align: center;
+    }
+
+    .trait-bar {
+        height: 6px;
+        background: linear-gradient(to right, #28a745 0%, #ffc107 50%, #dc3545 100%);
+        border-radius: 3px;
+        position: relative;
+    }
+
+    .character-avatar-large {
+        position: relative;
+    }
+
+    .avatar-placeholder {
+        border: 4px solid #fff;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .card-header h5 {
+        color: #495057;
+    }
+
+    .form-range::-webkit-slider-thumb {
+        background: #007bff;
+    }
+
+    .form-range::-moz-range-thumb {
+        background: #007bff;
+        border: none;
+    }
+
+    /* Styles pour l'interface de gestion des photos */
+    .photo-upload {
+        text-align: center;
+    }
+    
+    .photo-upload .btn-group {
+        margin-bottom: 8px;
+    }
+    
+    .photo-upload .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+    }
+    
+    .photo-upload .form-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 8px;
+    }
+    
+    /* Animation pour les transitions des boutons */
+    .btn-group {
+        transition: all 0.3s ease;
+    }
+    
+    .character-avatar-large {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .avatar-image,
+    .avatar-placeholder {
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .avatar-image:hover,
+    .avatar-placeholder:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion des skill dots (système à points)
+        document.querySelectorAll('.skill-dots-input').forEach(container => {
+            const skillName = container.dataset.skill;
+            const dots = container.querySelectorAll('.skill-dot-input');
+            const hiddenInput = document.getElementById(skillName);
+            const valueDisplay = document.getElementById(skillName + '_value');
+
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', () => {
+                    const value = index + 1;
+                    hiddenInput.value = value;
+                    valueDisplay.textContent = value + '/5';
+                    
+                    // Mettre à jour l'affichage visuel
+                    dots.forEach((d, i) => {
+                        if (i < value) {
+                            d.classList.add('filled');
+                        } else {
+                            d.classList.remove('filled');
+                        }
+                    });
+                });
+            });
+        });
+
+        // Gestion des sliders (traits de personnalité)
+        document.querySelectorAll('.trait-slider').forEach(slider => {
+            const valueDisplay = document.getElementById(slider.id + '_value');
+            
+            slider.addEventListener('input', () => {
+                valueDisplay.textContent = slider.value;
+                
+                // Positionner l'indicateur de valeur
+                const percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+                valueDisplay.style.left = percent + '%';
+                
+                // Changer la couleur selon la valeur
+                if (slider.value < -2) {
+                    valueDisplay.style.background = '#ff8f00'; // Orange foncé
+                } else if (slider.value > 2) {
+                    valueDisplay.style.background = '#ffa726'; // Orange moyen
+                } else {
+                    valueDisplay.style.background = '#ffab40'; // Orange clair
+                }
+            });
+
+            // Initialiser la position
+            const percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+            valueDisplay.style.left = percent + '%';
+        });
+
+        // Mise à jour de l'avatar en temps réel
+        function updateAvatar() {
+            const nom = document.getElementById('nom').value;
+            const prenom = document.getElementById('prenom').value;
+            const avatar = document.getElementById('avatarPreview');
+            
+            if (prenom) {
+                avatar.textContent = prenom.charAt(0).toUpperCase();
+            } else if (nom) {
+                avatar.textContent = nom.charAt(0).toUpperCase();
+            } else {
+                avatar.textContent = '?';
+            }
+        }
+
+        document.getElementById('nom').addEventListener('input', updateAvatar);
+        document.getElementById('prenom').addEventListener('input', updateAvatar);
+        updateAvatar(); // Initialisation
+        
+        // Gestion de l'upload d'images
+        document.getElementById('photo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Vérifier la taille du fichier (5 Mo max)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Le fichier est trop volumineux. Maximum 5 Mo.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Vérifier le type de fichier
+                if (!file.type.startsWith('image/')) {
+                    alert('Veuillez sélectionner une image.');
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Prévisualiser l'image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').src = e.target.result;
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('avatarPreview').style.display = 'none';
+                    
+                    // Changer l'interface des boutons
+                    document.getElementById('noPhotoButtons').classList.add('d-none');
+                    document.getElementById('selectedPhotoButtons').classList.remove('d-none');
+                    document.getElementById('uploadHint').classList.add('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+    
+    // Fonction pour supprimer la photo
+    function removePhoto() {
+        document.getElementById('photo').value = '';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('imagePreview').src = '';
+        document.getElementById('avatarPreview').style.display = 'flex';
+        
+        // Restaurer l'interface d'origine
+        document.getElementById('noPhotoButtons').classList.remove('d-none');
+        document.getElementById('selectedPhotoButtons').classList.add('d-none');
+        document.getElementById('uploadHint').classList.remove('d-none');
+    }
+</script>
+{% endblock %} 

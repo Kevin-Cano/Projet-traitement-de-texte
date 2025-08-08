@@ -1,0 +1,228 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Tableau de Bord - Écriture de Livre{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="bi bi-house-door me-2 text-primary"></i>
+        Tableau de Bord
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{{ path('app_livre_new') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>
+            Nouveau Livre
+        </a>
+    </div>
+</div>
+
+<!-- Statistiques rapides -->
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-book-fill display-4 mb-2"></i>
+                <h3 class="card-title">{{ livres|length }}</h3>
+                <p class="card-text">Livre{{ livres|length > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-file-text-fill display-4 mb-2"></i>
+                <h3 class="card-title">
+                    {% set totalChapitres = 0 %}
+                    {% for livre in livres %}
+                        {% if livre.chapitres is defined %}
+                            {% set totalChapitres = totalChapitres + livre.chapitres|length %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ totalChapitres }}
+                </h3>
+                <p class="card-text">Chapitre{{ totalChapitres > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-people-fill display-4 mb-2"></i>
+                <h3 class="card-title">
+                    {% set totalPersonnages = 0 %}
+                    {% for livre in livres %}
+                        {% if livre.personnages is defined %}
+                            {% set totalPersonnages = totalPersonnages + livre.personnages|length %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ totalPersonnages }}
+                </h3>
+                <p class="card-text">Personnage{{ totalPersonnages > 1 ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card border-0 bg-warning text-white h-100">
+            <div class="card-body text-center">
+                <i class="bi bi-fonts display-4 mb-2"></i>
+                <h3 class="card-title">
+                    {% set totalMots = 0 %}
+                    {% for livre in livres %}
+                        {% if livre.chapitres is defined %}
+                            {% for chapitre in livre.chapitres %}
+                                {% set totalMots = totalMots + (chapitre.nombreMots|default(0)) %}
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ totalMots }}
+                </h3>
+                <p class="card-text">Mots total</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Message de bienvenue ou état vide -->
+{% if livres|length == 0 %}
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-5">
+                    <i class="bi bi-book display-1 text-primary mb-4"></i>
+                    <h3 class="text-muted">Bienvenue dans votre espace d'écriture !</h3>
+                    <p class="text-muted mb-4">
+                        Commencez votre aventure littéraire en créant votre premier livre.<br>
+                        Organisez vos chapitres, développez vos personnages et rassemblez vos idées.
+                    </p>
+                    <a href="{{ path('app_livre_new') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer mon premier livre
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Liste des livres -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+            <i class="bi bi-collection me-2 text-primary"></i>
+            Mes Projets
+        </h4>
+        <a href="{{ path('app_livre_index') }}" class="btn btn-outline-primary btn-sm">
+            Voir tout <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+
+    <div class="row">
+        {% for livre in livres|slice(0, 6) %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-transparent border-0">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <h5 class="card-title text-primary mb-0">{{ livre.titre }}</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ path('app_livre_show', {id: livre.id}) }}">
+                                        <i class="bi bi-eye me-2"></i>Ouvrir
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ path('app_livre_edit', {id: livre.id}) }}">
+                                        <i class="bi bi-pencil me-2"></i>Modifier
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        {% if livre.auteur is defined and livre.auteur %}
+                            <small class="text-muted">par {{ livre.auteur }}</small>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if livre.description is defined and livre.description %}
+                            <p class="card-text text-muted small">
+                                {{ livre.description|length > 80 ? livre.description|slice(0, 80) ~ '...' : livre.description }}
+                            </p>
+                        {% endif %}
+                        
+                        <div class="row text-center mt-3">
+                            <div class="col-4">
+                                <div class="text-primary">
+                                    <strong>{{ livre.chapitres is defined ? livre.chapitres|length : 0 }}</strong>
+                                    <br><small class="text-muted">Chap.</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-success">
+                                    <strong>{{ livre.personnages is defined ? livre.personnages|length : 0 }}</strong>
+                                    <br><small class="text-muted">Perso.</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-warning">
+                                    <strong>
+                                        {% set motsDuLivre = 0 %}
+                                        {% if livre.chapitres is defined %}
+                                            {% for chapitre in livre.chapitres %}
+                                                {% set motsDuLivre = motsDuLivre + (chapitre.nombreMots|default(0)) %}
+                                            {% endfor %}
+                                        {% endif %}
+                                        {{ motsDuLivre }}
+                                    </strong>
+                                    <br><small class="text-muted">Mots</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                {{ livre.dateCreation is defined ? livre.dateCreation|date('d/m/Y') : 'N/A' }}
+                            </small>
+                            {% if livre.dateModification is defined and livre.dateModification %}
+                                <small class="text-muted">
+                                    <i class="bi bi-pencil-square me-1"></i>
+                                    {{ livre.dateModification|date('d/m/Y') }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ path('app_livre_show', {id: livre.id}) }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-arrow-right-circle me-2"></i>
+                                Ouvrir le projet
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if livres|length > 6 %}
+        <div class="text-center mt-4">
+            <a href="{{ path('app_livre_index') }}" class="btn btn-outline-primary">
+                <i class="bi bi-collection me-2"></i>
+                Voir tous mes livres ({{ livres|length }})
+            </a>
+        </div>
+    {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function confirmDelete(livreId) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const form = document.getElementById('deleteForm');
+        const token = document.getElementById('deleteToken');
+        
+        form.action = `/livre/${livreId}/supprimer`;
+        // Note: En production, récupérer le vrai token CSRF
+        token.value = 'token_placeholder';
+        
+        modal.show();
+    }
+</script>
+{% endblock %} 

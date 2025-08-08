@@ -1,0 +1,311 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Gestion des Lieux{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .location-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .location-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .location-type {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .type-ville { background: #e3f2fd; color: #1976d2; }
+        .type-château { background: #f3e5f5; color: #7b1fa2; }
+        .type-forêt { background: #e8f5e8; color: #388e3c; }
+        .type-montagne { background: #f5f5f5; color: #616161; }
+        .type-autre { background: #fff3e0; color: #f57c00; }
+        
+        .world-building-header {
+            background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .location-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 1rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="world-building-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-0">
+                    <i class="bi bi-geo-alt me-3"></i>
+                    Gestion des Lieux
+                </h1>
+                <p class="mb-0 mt-2 opacity-75">
+                    Créez et gérez tous les lieux de votre univers
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{{ path('app_world_building_lieu_nouveau') }}" class="btn btn-light btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Nouveau Lieu
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Filtres -->
+    <div class="filters-section">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <label class="form-label">Filtrer par livre :</label>
+                <select class="form-select" onchange="window.location.href='{{ path('app_world_building_lieux') }}?book_id=' + this.value + '&type={{ current_type }}'">
+                    <option value="">Tous les livres</option>
+                    {% for livre in livres %}
+                        <option value="{{ livre.id }}" {{ current_book_id == livre.id ? 'selected' : '' }}>
+                            {{ livre.titre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Filtrer par type :</label>
+                <select class="form-select" onchange="window.location.href='{{ path('app_world_building_lieux') }}?book_id={{ current_book_id }}&type=' + this.value">
+                    <option value="">Tous les types</option>
+                    {% for type in types %}
+                        <option value="{{ type }}" {{ current_type == type ? 'selected' : '' }}>
+                            {{ type|title }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex gap-2 align-items-end h-100">
+                    <a href="{{ path('app_world_building_carte') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-map me-2"></i>
+                        Voir la Carte
+                    </a>
+                    <a href="{{ path('app_world_building_chronologie') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Chronologie
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    {% if lieux|length > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="location-card">
+                <h5><i class="bi bi-bar-chart me-2"></i>Statistiques des Lieux</h5>
+                <div class="location-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ lieux|length }}</div>
+                        <small class="text-muted">Total</small>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ lieux|filter(l => l.type == 'ville')|length }}</div>
+                        <small class="text-muted">Villes</small>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ lieux|filter(l => l.type == 'château')|length }}</div>
+                        <small class="text-muted">Châteaux</small>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ lieux|filter(l => l.type == 'forêt')|length }}</div>
+                        <small class="text-muted">Forêts</small>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ lieux|filter(l => l.population|default(0) > 0)|length }}</div>
+                        <small class="text-muted">Peuplés</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Liste des lieux -->
+    <div class="row">
+        {% if lieux|length == 0 %}
+            <div class="col-12">
+                <div class="location-card text-center py-5">
+                    <i class="bi bi-geo-alt" style="font-size: 4rem; color: #ccc;"></i>
+                    <h4 class="mt-3 text-muted">Aucun lieu trouvé</h4>
+                    <p class="text-muted">Commencez par créer votre premier lieu pour enrichir votre univers.</p>
+                    <a href="{{ path('app_world_building_lieu_nouveau') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer un Lieu
+                    </a>
+                </div>
+            </div>
+        {% else %}
+            {% for lieu in lieux %}
+                <div class="col-lg-6 col-xl-4">
+                    <div class="location-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                         <span class="location-type type-{{ lieu.type|default('autre') }}">
+                                {% if lieu.type == 'ville' %}🏙️{% elseif lieu.type == 'château' %}🏰{% elseif lieu.type == 'forêt' %}🌲{% elseif lieu.type == 'montagne' %}⛰️{% else %}📍{% endif %}
+                                {{ lieu.type|default('autre')|title }}
+                            </span>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ path('app_world_building_lieu_edit', {id: lieu.id}) }}">
+                                        <i class="bi bi-pencil me-2"></i>Modifier
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="confirmDelete({{ lieu.id }})">
+                                        <i class="bi bi-trash me-2"></i>Supprimer
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <h5 class="mb-2">{{ lieu.nom }}</h5>
+                        
+                        {% if lieu.description %}
+                            <p class="text-muted mb-2">{{ lieu.description|slice(0, 120) }}{% if lieu.description|length > 120 %}...{% endif %}</p>
+                        {% endif %}
+                        
+                        <div class="row text-center mb-3">
+                            {% if lieu.population %}
+                                <div class="col-4">
+                                    <strong>{{ lieu.population|number_format }}</strong><br>
+                                    <small class="text-muted">habitants</small>
+                                </div>
+                            {% endif %}
+                            {% if lieu.coordonnees %}
+                                <div class="col-4">
+                                    <span class="coordinates">{{ lieu.coordonnees.x|default(0) }}, {{ lieu.coordonnees.y|default(0) }}</span><br>
+                                    <small class="text-muted">coordonnées</small>
+                                </div>
+                            {% endif %}
+                            {% if lieu.climat %}
+                                <div class="col-4">
+                                    <strong>{{ lieu.climat|title }}</strong><br>
+                                    <small class="text-muted">climat</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if lieu.points_interet and lieu.points_interet|length > 0 %}
+                            <div class="mb-2">
+                                <small class="text-muted d-block">Points d'intérêt :</small>
+                                {% for point in lieu.points_interet|slice(0, 2) %}
+                                    <span class="badge bg-light text-dark me-1">{{ point }}</span>
+                                {% endfor %}
+                                {% if lieu.points_interet|length > 2 %}
+                                    <span class="badge bg-secondary">+{{ lieu.points_interet|length - 2 }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar me-1"></i>
+                                {% if lieu.date_creation is defined and lieu.date_creation %}
+                            {{ lieu.date_creation|date('d/m/Y') }}
+                        {% else %}
+                            Lieu du royaume
+                        {% endif %}
+                            </small>
+                            <a href="{{ path('app_world_building_lieu_edit', {id: lieu.id}) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Détails
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        function confirmDelete(lieuId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce lieu ? Cette action est irréversible.\n\nCette action supprimera aussi toutes les références à ce lieu.')) {
+                // Créer un formulaire temporaire pour la requête POST
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/world-building/lieu/' + lieuId + '/delete';
+                
+                // Ajouter le token CSRF si disponible
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (csrfToken) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = csrfToken.getAttribute('content');
+                    form.appendChild(tokenInput);
+                }
+                
+                // Ajouter le formulaire au DOM et le soumettre
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        // Animation d'apparition des cartes
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.location-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+{% endblock %} 

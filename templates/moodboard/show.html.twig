@@ -1,0 +1,565 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ moodboard.nom }} - Moodboard{% endblock %}
+
+{% block body %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ path('app_home') }}">Accueil</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_livre_show', {id: livre.id}) }}">{{ livre.titre }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}">Moodboards</a></li>
+                <li class="breadcrumb-item active">{{ moodboard.nom }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-images me-2 text-info"></i>
+            {{ moodboard.nom }}
+            <span class="badge bg-info ms-2">{{ moodboard.type|title }}</span>
+        </h1>
+        {% if moodboard.description is defined and moodboard.description %}
+            <p class="text-muted">{{ moodboard.description }}</p>
+        {% endif %}
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ path('app_moodboard_edit', {id: moodboard.id}) }}" class="btn btn-primary">
+                <i class="bi bi-pencil me-2"></i>Modifier
+            </a>
+        </div>
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-plus-circle me-2"></i>Ajouter image
+            </button>
+        </div>
+        <div class="btn-group">
+            <a href="{{ path('app_moodboard_index', {livreId: livre.id}) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Retour aux moodboards
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Informations du moodboard -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 bg-info text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-image-fill display-4 mb-2"></i>
+                <h3>{{ moodboard.images is defined ? moodboard.images|length : 0 }}</h3>
+                <p class="mb-0">Image{{ (moodboard.images is defined and moodboard.images|length > 1) ? 's' : '' }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-success text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-calendar3 display-4 mb-2"></i>
+                <h3>{{ moodboard.dateCreation is defined ? moodboard.dateCreation|date('d/m') : 'N/A' }}</h3>
+                <p class="mb-0">Créé le</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-warning text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-palette display-4 mb-2"></i>
+                <h3>{{ moodboard.type|title }}</h3>
+                <p class="mb-0">Type</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 bg-secondary text-white">
+            <div class="card-body text-center">
+                <i class="bi bi-book display-4 mb-2"></i>
+                <h3>{{ livre.titre|slice(0, 8) }}{{ livre.titre|length > 8 ? '...' : '' }}</h3>
+                <p class="mb-0">Livre</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Galerie d'images -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid me-2 text-info"></i>
+                    Galerie
+                </h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-secondary active" onclick="setView('grid')">
+                        <i class="bi bi-grid-3x3-gap"></i> Grille
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setView('masonry')">
+                        <i class="bi bi-bricks"></i> Mosaïque
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setView('list')">
+                        <i class="bi bi-list"></i> Liste
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if moodboard.images is defined and moodboard.images|length > 0 %}
+                    <!-- Vue en grille (par défaut) -->
+                    <div id="grid-view" class="image-gallery">
+                        {% for image in moodboard.images %}
+                            <div class="image-item" data-index="{{ loop.index0 }}">
+                                <div class="image-container">
+                                    <img src="/{{ image.chemin }}" alt="{{ image.description ?? image.nom_original }}" 
+                                         class="img-fluid" loading="lazy" onclick="openLightbox({{ loop.index0 }})">
+                                    
+                                    <!-- Overlay avec actions -->
+                                    <div class="image-overlay">
+                                        <div class="image-actions">
+                                            <button type="button" class="btn btn-sm btn-light" 
+                                                    onclick="openLightbox({{ loop.index0 }})" title="Voir en grand">
+                                                <i class="bi bi-zoom-in"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    onclick="confirmDeleteImage({{ moodboard.id }}, {{ loop.index0 }}, '{{ image.nom_original|e('js') }}')" 
+                                                    title="Supprimer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                        {% if image.description is defined and image.description %}
+                                            <div class="image-description">
+                                                {{ image.description }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Vue en mosaïque -->
+                    <div id="masonry-view" class="image-masonry d-none">
+                        {% for image in moodboard.images %}
+                            <div class="masonry-item">
+                                <img src="/{{ image.chemin }}" alt="{{ image.description ?? image.nom_original }}" 
+                                     class="img-fluid" loading="lazy" onclick="openLightbox({{ loop.index0 }})">
+                                <div class="masonry-overlay">
+                                    <button type="button" class="btn btn-sm btn-danger" 
+                                            onclick="confirmDeleteImage({{ moodboard.id }}, {{ loop.index0 }}, '{{ image.nom_original|e('js') }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Vue en liste -->
+                    <div id="list-view" class="image-list d-none">
+                        {% for image in moodboard.images %}
+                            <div class="list-item d-flex align-items-center p-3 border-bottom">
+                                <img src="/{{ image.chemin }}" alt="{{ image.description ?? image.nom_original }}" 
+                                     class="img-thumbnail me-3" style="width: 100px; height: 100px; object-fit: cover;">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ image.nom_original }}</h6>
+                                    {% if image.description is defined and image.description %}
+                                        <p class="text-muted mb-1">{{ image.description }}</p>
+                                    {% endif %}
+                                    <small class="text-muted">Ajoutée le {{ image.date_ajout|date('d/m/Y à H:i') }}</small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary" onclick="openLightbox({{ loop.index0 }})">
+                                        <i class="bi bi-zoom-in"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="confirmDeleteImage({{ moodboard.id }}, {{ loop.index0 }}, '{{ image.nom_original|e('js') }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                {% else %}
+                    <!-- État vide -->
+                    <div class="text-center py-5">
+                        <i class="bi bi-images display-1 text-muted mb-4"></i>
+                        <h4 class="text-muted">Aucune image pour le moment</h4>
+                        <p class="text-muted mb-4">Commencez à créer votre collage visuel en ajoutant des images.</p>
+                        <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                            <i class="bi bi-plus-circle me-2"></i>Ajouter la première image
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'upload -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter une image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{{ path('app_moodboard_add_image', {id: moodboard.id}) }}" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Sélectionner une image *</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
+                        <div class="form-text">Formats acceptés : JPG, PNG, GIF, WebP (max 10 Mo)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description (optionnelle)</label>
+                        <textarea class="form-control" id="description" name="description" rows="2" 
+                                  placeholder="Décrivez cette image ou son rôle dans votre moodboard..."></textarea>
+                    </div>
+
+                    <!-- Prévisualisation -->
+                    <div id="imagePreview" class="d-none">
+                        <label class="form-label">Prévisualisation :</label>
+                        <div class="text-center">
+                            <img id="previewImg" class="img-thumbnail" style="max-width: 100%; max-height: 200px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload me-2"></i>Ajouter l'image
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de suppression d'image -->
+<div class="modal fade" id="deleteImageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Supprimer l'image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer l'image <strong id="imageNom"></strong> ?</p>
+                <p class="text-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Cette action est irréversible.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteImageForm" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Supprimer définitivement
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox" class="lightbox d-none">
+    <div class="lightbox-content">
+        <button type="button" class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <button type="button" class="lightbox-prev" onclick="prevImage()">&#8249;</button>
+        <button type="button" class="lightbox-next" onclick="nextImage()">&#8250;</button>
+        <img id="lightboxImg" src="" alt="">
+        <div class="lightbox-caption"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* Galerie en grille */
+    .image-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .image-item {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .image-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .image-container {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .image-container img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .image-container:hover img {
+        transform: scale(1.05);
+    }
+
+    /* Overlay */
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 10px;
+    }
+
+    .image-item:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .image-actions {
+        display: flex;
+        gap: 5px;
+        justify-content: flex-end;
+        align-items: flex-start;
+    }
+
+    .image-description {
+        color: white;
+        font-size: 0.875rem;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        line-height: 1.3;
+    }
+
+    /* Vue mosaïque */
+    .image-masonry {
+        columns: 4;
+        column-gap: 20px;
+    }
+
+    .masonry-item {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .masonry-item img {
+        width: 100%;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+    .masonry-item:hover img {
+        transform: scale(1.02);
+    }
+
+    .masonry-overlay {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .masonry-item:hover .masonry-overlay {
+        opacity: 1;
+    }
+
+    /* Lightbox */
+    .lightbox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .lightbox-content {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+    }
+
+    .lightbox img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .lightbox-close,
+    .lightbox-prev,
+    .lightbox-next {
+        position: absolute;
+        background: rgba(255,255,255,0.8);
+        border: none;
+        font-size: 2rem;
+        padding: 10px 15px;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: background 0.3s ease;
+    }
+
+    .lightbox-close {
+        top: -50px;
+        right: 0;
+    }
+
+    .lightbox-prev {
+        left: -60px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .lightbox-next {
+        right: -60px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .lightbox-close:hover,
+    .lightbox-prev:hover,
+    .lightbox-next:hover {
+        background: white;
+    }
+
+    .lightbox-caption {
+        position: absolute;
+        bottom: -40px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: white;
+        font-size: 1.1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .image-gallery {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .image-masonry {
+            columns: 2;
+            column-gap: 10px;
+        }
+
+        .masonry-item {
+            margin-bottom: 10px;
+        }
+
+        .lightbox-prev,
+        .lightbox-next {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    let currentImageIndex = 0;
+    const images = {{ moodboard.images|default([])|json_encode|raw }};
+
+    // Prévisualisation de l'image lors de l'upload
+    document.getElementById('image').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Gestion des vues
+    function setView(viewType) {
+        // Cacher toutes les vues
+        document.getElementById('grid-view').classList.add('d-none');
+        document.getElementById('masonry-view').classList.add('d-none');
+        document.getElementById('list-view').classList.add('d-none');
+
+        // Afficher la vue sélectionnée
+        document.getElementById(viewType + '-view').classList.remove('d-none');
+
+        // Mettre à jour les boutons
+        document.querySelectorAll('.btn-group-sm .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+
+    // Lightbox
+    function openLightbox(index) {
+        currentImageIndex = index;
+        const image = images[index];
+        document.getElementById('lightboxImg').src = `/${image.chemin}`;
+        document.querySelector('.lightbox-caption').textContent = image.description || image.nom_original;
+        document.getElementById('lightbox').classList.remove('d-none');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.add('d-none');
+    }
+
+    function nextImage() {
+        currentImageIndex = (currentImageIndex + 1) % images.length;
+        openLightbox(currentImageIndex);
+    }
+
+    function prevImage() {
+        currentImageIndex = (currentImageIndex - 1 + images.length) % images.length;
+        openLightbox(currentImageIndex);
+    }
+
+    // Fermer lightbox avec échap
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeLightbox();
+        } else if (e.key === 'ArrowRight') {
+            nextImage();
+        } else if (e.key === 'ArrowLeft') {
+            prevImage();
+        }
+    });
+
+    // Confirmation de suppression d'image
+    function confirmDeleteImage(moodboardId, imageIndex, imageName) {
+        const modal = new bootstrap.Modal(document.getElementById('deleteImageModal'));
+        const form = document.getElementById('deleteImageForm');
+        const nomElement = document.getElementById('imageNom');
+        
+        form.action = `/moodboard/${moodboardId}/supprimer-image/${imageIndex}`;
+        nomElement.textContent = imageName;
+        
+        modal.show();
+    }
+</script>
+{% endblock %} 

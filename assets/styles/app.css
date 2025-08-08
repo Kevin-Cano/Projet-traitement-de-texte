@@ -1,0 +1,39 @@
+body {
+    background-color: lightgray;
+}
+
+/* Styles personnalisés pour les pages personnages - Orange clair */
+.bg-success {
+    background-color: #ffab40 !important;
+}
+
+.text-success {
+    color: #ffab40 !important;
+}
+
+.card-header.bg-success {
+    background-color: #ffab40 !important;
+    border-color: #ff8f00 !important;
+}
+
+/* Boutons et liens success en orange */
+.btn-success {
+    background-color: #ffab40 !important;
+    border-color: #ff8f00 !important;
+}
+
+.btn-success:hover {
+    background-color: #ff8f00 !important;
+    border-color: #f57c00 !important;
+}
+
+.btn-outline-success {
+    color: #ffab40 !important;
+    border-color: #ffab40 !important;
+}
+
+.btn-outline-success:hover {
+    background-color: #ffab40 !important;
+    border-color: #ffab40 !important;
+    color: white !important;
+}

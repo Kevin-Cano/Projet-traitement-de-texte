@@ -1,0 +1,533 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}World Building{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .world-building-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            height: 100%;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .recent-item {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .recent-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .progress-ring {
+            width: 120px;
+            height: 120px;
+        }
+        
+        .progress-ring circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+        
+        .progress-ring .bg {
+            stroke: #e9ecef;
+        }
+        
+        .progress-ring .fg {
+            stroke: #28a745;
+            stroke-dasharray: 0 314;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dasharray 0.5s ease;
+        }
+        
+        .universe-overview {
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                       linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                       linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                       linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+<div class="world-building-hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 mb-3">
+                    <i class="bi bi-globe2 me-3"></i>
+                    World Building
+                </h1>
+                <p class="lead mb-4">
+                    Créez et gérez des univers riches et détaillés pour vos histoires.
+                    Organisez lieux, événements, cultures et chronologies.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="{{ path('app_world_building_carte') }}" class="btn btn-light btn-lg">
+                        <i class="bi bi-map me-2"></i>
+                        Explorer la Carte
+                    </a>
+                    <a href="{{ path('app_world_building_lieu_nouveau') }}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Créer un Lieu
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="bi bi-compass" style="font-size: 8rem; opacity: 0.3;"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Statistiques rapides -->
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stat-number">{{ stats.total_locations }}</div>
+                <div class="stat-label">Lieux créés</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stat-number">{{ stats.total_events }}</div>
+                <div class="stat-label">Événements historiques</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stat-number">{{ stats.total_books }}</div>
+                <div class="stat-label">Univers actifs</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="stat-number">{{ stats.avg_locations_per_book }}</div>
+                <div class="stat-label">Lieux par univers</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fonctionnalités principales -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="text-center mb-5">Explorez vos outils de création</h2>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <a href="{{ path('app_world_building_carte') }}" class="feature-card d-block">
+                <div class="feature-icon">
+                    <i class="bi bi-map"></i>
+                </div>
+                <h4>Carte Interactive</h4>
+                <p class="text-muted">
+                    Visualisez vos univers sur une carte interactive. 
+                    Placez vos lieux, explorez les relations spatiales 
+                    et naviguez intuitivement.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-primary">{{ stats.total_locations }} lieux</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <a href="{{ path('app_world_building_lieux') }}" class="feature-card d-block">
+                <div class="feature-icon">
+                    <i class="bi bi-geo-alt"></i>
+                </div>
+                <h4>Gestion des Lieux</h4>
+                <p class="text-muted">
+                    Créez des lieux détaillés avec leur histoire, 
+                    culture, économie et caractéristiques uniques. 
+                    Organisez vos mondes.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-success">Villes, châteaux, forêts...</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <a href="{{ path('app_world_building_chronologie') }}" class="feature-card d-block">
+                <div class="feature-icon">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <h4>Chronologie</h4>
+                <p class="text-muted">
+                    Construisez l'histoire de vos univers avec 
+                    une timeline interactive. Batailles, naissances, 
+                    découvertes et plus.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-warning">{{ stats.total_events }} événements</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <a href="{{ path('app_world_building_lexique') }}" class="feature-card d-block">
+                <div class="feature-icon">
+                    <i class="bi bi-book"></i>
+                </div>
+                <h4>Lexique</h4>
+                <p class="text-muted">
+                    Définissez la terminologie de vos univers. 
+                    Créez un glossaire complet des termes, 
+                    concepts et éléments uniques.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-primary">{{ stats.total_terms }} termes</span>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h4>Cultures & Sociétés</h4>
+                <p class="text-muted">
+                    Développez des cultures riches avec leurs 
+                    traditions, langues, systèmes politiques 
+                    et structures sociales.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-secondary">En développement</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <a href="{{ path('app_world_building_relations') }}" class="feature-card d-block">
+                <div class="feature-icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <h4>Relations & Connexions</h4>
+                <p class="text-muted">
+                    Visualisez les connexions entre lieux, 
+                    personnages et événements avec des 
+                    diagrammes interactifs.
+                </p>
+                <div class="mt-3">
+                    <span class="badge bg-info">{{ stats.total_relations }} relations</span>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenu récent et actions rapides -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="quick-actions">
+                <h4 class="mb-4">
+                    <i class="bi bi-lightning me-2"></i>
+                    Actions rapides
+                </h4>
+                
+                <div class="row">
+                    <div class="col-sm-6 mb-3">
+                        <a href="{{ path('app_world_building_lieu_nouveau') }}" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Nouveau Lieu
+                        </a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <a href="{{ path('app_world_building_evenement_nouveau') }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-calendar-plus me-2"></i>
+                            Nouvel Événement
+                        </a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <a href="{{ path('app_world_building_carte') }}" class="btn btn-outline-info w-100">
+                            <i class="bi bi-map me-2"></i>
+                            Ouvrir la Carte
+                        </a>
+                    </div>
+                    <div class="col-sm-6 mb-3">
+                        <button class="btn btn-outline-secondary w-100" onclick="exportWorldData()" title="Bientôt disponible" disabled>
+                            <i class="bi bi-download me-2"></i>
+                            Exporter Données
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="quick-actions">
+                <h4 class="mb-4">
+                    <i class="bi bi-clock me-2"></i>
+                    Activité récente
+                </h4>
+                
+                {% if recent_locations|length > 0 or recent_events|length > 0 %}
+                    {% for location in recent_locations %}
+                        <div class="recent-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ location.nom }}</strong>
+                                    <small class="text-muted d-block">
+                                        Lieu • {{ location.type|title }}
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    {% if location.date_creation is defined and location.date_creation %}
+                                        {{ location.date_creation|date('d/m/Y') }}
+                                    {% else %}
+                                        Lieu du royaume
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    {% for event in recent_events %}
+                        <div class="recent-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ event.nom }}</strong>
+                                    <small class="text-muted d-block">
+                                        Événement • {{ event.type|title }}
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    {% if event.date is defined and event.date %}
+                                        {{ event.date }}
+                                    {% else %}
+                                        Événement historique
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox" style="font-size: 2rem; color: #ccc;"></i>
+                        <p class="text-muted mt-2">Aucune activité récente</p>
+                        <p class="small text-muted">
+                            Commencez par créer votre premier lieu ou événement
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue d'ensemble des univers -->
+    {% if livres|length > 0 %}
+    <div class="universe-overview mt-5">
+        <h3 class="mb-4">
+            <i class="bi bi-collection me-2"></i>
+            Vos Univers
+        </h3>
+        
+        <div class="row">
+            {% for livre in livres %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ livre.titre }}</h5>
+                            {% if livre.description %}
+                                <p class="card-text text-muted">
+                                    {{ livre.description|slice(0, 100) }}{% if livre.description|length > 100 %}...{% endif %}
+                                </p>
+                            {% endif %}
+                            
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <strong class="text-primary">0</strong>
+                                    <br><small class="text-muted">Lieux</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-success">0</strong>
+                                    <br><small class="text-muted">Événements</small>
+                                </div>
+                                <div class="col-4">
+                                    <strong class="text-info">0</strong>
+                                    <br><small class="text-muted">Personnages</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex gap-2">
+                                <a href="{{ path('app_world_building_carte', {bookId: livre.id}) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-map me-1"></i>Carte
+                                </a>
+                                <a href="{{ path('app_world_building_lieux') }}?book_id={{ livre.id }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-geo-alt me-1"></i>Lieux
+                                </a>
+                                <a href="{{ path('app_world_building_chronologie', {bookId: livre.id}) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-clock me-1"></i>Timeline
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        // Animation des cartes au scroll
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.feature-card, .stats-card');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '0';
+                        entry.target.style.transform = 'translateY(20px)';
+                        entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                        
+                        setTimeout(() => {
+                            entry.target.style.opacity = '1';
+                            entry.target.style.transform = 'translateY(0)';
+                        }, Math.random() * 300);
+                        
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            cards.forEach(card => observer.observe(card));
+        });
+        
+        // Animation des compteurs
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+            
+            counters.forEach(counter => {
+                const target = parseInt(counter.textContent);
+                const increment = target / 50;
+                let current = 0;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    counter.textContent = Math.floor(current);
+                    
+                    if (current >= target) {
+                        counter.textContent = target;
+                        clearInterval(timer);
+                    }
+                }, 30);
+            });
+        }
+        
+        // Export des données (placeholder)
+        function exportWorldData() {
+            alert('Fonctionnalité d\'export en cours de développement !');
+        }
+        
+        // Initialiser les animations après le chargement
+        window.addEventListener('load', function() {
+            setTimeout(animateCounters, 500);
+        });
+        
+        // Raccourcis clavier
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey) {
+                switch(e.key) {
+                    case 'L':
+                        e.preventDefault();
+                        window.location.href = '{{ path('app_world_building_lieux') }}';
+                        break;
+                    case 'M':
+                        e.preventDefault();
+                        window.location.href = '{{ path('app_world_building_carte') }}';
+                        break;
+                    case 'T':
+                        e.preventDefault();
+                        window.location.href = '{{ path('app_world_building_chronologie') }}';
+                        break;
+                    case 'N':
+                        e.preventDefault();
+                        window.location.href = '{{ path('app_world_building_lieu_nouveau') }}';
+                        break;
+                }
+            }
+        });
+        
+        // Afficher les raccourcis dans la console
+        console.log('🎮 Raccourcis World Building:');
+        console.log('Ctrl+Shift+L - Lieux');
+        console.log('Ctrl+Shift+M - Carte');
+        console.log('Ctrl+Shift+T - Timeline');
+        console.log('Ctrl+Shift+N - Nouveau lieu');
+    </script>
+{% endblock %} 
