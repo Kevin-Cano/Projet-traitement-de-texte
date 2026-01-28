@@ -41,10 +41,13 @@ class AnalyticsController extends AbstractController
             $livre['nb_chapitres'] = count($chapitresLivre);
         }
 
-        // Calculer les statistiques globales
+        // Calculer les statistiques globales avec tendances
         $stats = $this->calculateGlobalStats($livres, $chapitres, $personnages);
         $progressionData = $this->getProgressionData($chapitres);
         $productivityData = $this->getProductivityData();
+        
+        // Ajouter les tendances aux statistiques
+        $stats = array_merge($stats, $this->calculateTrends($chapitres, $personnages));
 
         return $this->render('analytics/dashboard.html.twig', [
             'stats' => $stats,
@@ -175,7 +178,7 @@ class AnalyticsController extends AbstractController
         $completedBooks = 0;
 
         foreach ($chapitres as $chapitre) {
-            $totalWords += $chapitre['nombre_mots'] ?? 0;
+            $totalWords += $chapitre['nombreMots'] ?? 0;
         }
 
         if ($totalChapters > 0) {
@@ -209,7 +212,7 @@ class AnalyticsController extends AbstractController
         $completedChapters = 0;
 
         foreach ($chapitres as $chapitre) {
-            $totalWords += $chapitre['nombre_mots'] ?? 0;
+            $totalWords += $chapitre['nombreMots'] ?? 0;
             if (($chapitre['statut'] ?? '') === 'termine') {
                 $completedChapters++;
             }
@@ -297,40 +300,36 @@ class AnalyticsController extends AbstractController
         $data = [];
         $now = new \DateTime();
         
+        // Créer un tableau pour stocker les mots par date
+        $wordsByDate = [];
+        
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = clone $now;
             $date->sub(new \DateInterval("P{$i}D"));
             $dateStr = $date->format('Y-m-d');
-            
-            $wordsThisDay = 0;
-            foreach ($chapitres as $chapitre) {
-                // Utiliser les bonnes clés de dates (dateModification ou dateCreation)
-                $modificationDate = $chapitre['dateModification'] ?? $chapitre['dateCreation'] ?? null;
-                if ($modificationDate && strpos($modificationDate, $dateStr) === 0) {
-                    $wordsThisDay += $chapitre['nombre_mots'] ?? 0;
+            $wordsByDate[$dateStr] = 0;
+        }
+        
+        // Calculer les mots écrits par jour basé sur les modifications
+        foreach ($chapitres as $chapitre) {
+            $dateModification = $chapitre['dateModification'] ?? $chapitre['dateCreation'] ?? null;
+            if ($dateModification) {
+                $dateOnly = substr($dateModification, 0, 10); // Extraire YYYY-MM-DD
+                if (isset($wordsByDate[$dateOnly])) {
+                    // Ajouter les mots du chapitre au jour correspondant
+                    $wordsByDate[$dateOnly] += $chapitre['nombreMots'] ?? 0;
                 }
             }
-            
+        }
+        
+        // Convertir en format attendu par le graphique
+        foreach ($wordsByDate as $dateStr => $words) {
+            $date = new \DateTime($dateStr);
             $data[] = [
                 'date' => $dateStr,
-                'words' => $wordsThisDay,
+                'words' => $words,
                 'day_name' => $date->format('D'),
             ];
-        }
-
-        // Si pas de données, créer des données factices pour le demo
-        if (empty($data) || array_sum(array_column($data, 'words')) === 0) {
-            $data = [];
-            $now = new \DateTime();
-            for ($i = 6; $i >= 0; $i--) {
-                $date = clone $now;
-                $date->sub(new \DateInterval("P{$i}D"));
-                $data[] = [
-                    'date' => $date->format('Y-m-d'),
-                    'words' => rand(100, 800),
-                    'day_name' => $date->format('D'),
-                ];
-            }
         }
 
         return $data;
@@ -338,21 +337,66 @@ class AnalyticsController extends AbstractController
 
     private function getProductivityData(int $days = 30): array
     {
-        // Simulation de données de productivité
-        // Dans un vrai système, cela viendrait de WritingSession
+        $chapitres = $this->jsonRepo->findAllByType('chapitre');
         $data = [];
         $now = new \DateTime();
+        
+        // Créer un tableau pour stocker les données par date
+        $productivityByDate = [];
         
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = clone $now;
             $date->sub(new \DateInterval("P{$i}D"));
-            
+            $dateStr = $date->format('Y-m-d');
+            $productivityByDate[$dateStr] = [
+                'sessions' => 0,
+                'duration' => 0,
+                'words_per_minute' => 0,
+                'efficiency' => 0,
+                'total_words' => 0
+            ];
+        }
+        
+        // Analyser les chapitres pour calculer la productivité réelle
+        foreach ($chapitres as $chapitre) {
+            $dateModification = $chapitre['dateModification'] ?? $chapitre['dateCreation'] ?? null;
+            if ($dateModification) {
+                $dateOnly = substr($dateModification, 0, 10);
+                if (isset($productivityByDate[$dateOnly])) {
+                    $productivityByDate[$dateOnly]['sessions']++;
+                    $productivityByDate[$dateOnly]['total_words'] += $chapitre['nombreMots'] ?? 0;
+                    
+                    // Estimation de la durée basée sur le nombre de mots (1 mot = ~0.5 minute d'écriture)
+                    $estimatedDuration = ($chapitre['nombreMots'] ?? 0) * 0.5;
+                    $productivityByDate[$dateOnly]['duration'] += $estimatedDuration;
+                    
+                    // Calcul des mots par minute
+                    if ($estimatedDuration > 0) {
+                        $productivityByDate[$dateOnly]['words_per_minute'] = round(
+                            $productivityByDate[$dateOnly]['total_words'] / ($productivityByDate[$dateOnly]['duration'] / 60), 
+                            1
+                        );
+                    }
+                    
+                    // Calcul de l'efficacité basée sur la régularité et la productivité
+                    $efficiency = min(100, max(0, 
+                        50 + // Base
+                        ($productivityByDate[$dateOnly]['sessions'] * 10) + // Bonus sessions
+                        min(30, $productivityByDate[$dateOnly]['words_per_minute'] * 2) // Bonus vitesse
+                    ));
+                    $productivityByDate[$dateOnly]['efficiency'] = round($efficiency);
+                }
+            }
+        }
+        
+        // Convertir en format attendu
+        foreach ($productivityByDate as $dateStr => $productivity) {
             $data[] = [
-                'date' => $date->format('Y-m-d'),
-                'sessions' => rand(0, 4),
-                'duration' => rand(0, 240), // minutes
-                'words_per_minute' => rand(5, 25),
-                'efficiency' => rand(60, 95),
+                'date' => $dateStr,
+                'sessions' => $productivity['sessions'],
+                'duration' => round($productivity['duration']),
+                'words_per_minute' => $productivity['words_per_minute'],
+                'efficiency' => $productivity['efficiency'],
             ];
         }
 
@@ -475,7 +519,7 @@ class AnalyticsController extends AbstractController
             $analysis[] = [
                 'id' => $chapitre['id'],
                 'titre' => $chapitre['titre'],
-                'mots' => $chapitre['nombre_mots'] ?? 0,
+                'mots' => $chapitre['nombreMots'] ?? 0,
                 'analyse' => $this->analyzeChapterText($chapitre),
             ];
         }
@@ -491,7 +535,7 @@ class AnalyticsController extends AbstractController
             $timeline[] = [
                 'date' => $chapitre['date_creation'] ?? '',
                 'titre' => $chapitre['titre'],
-                'mots' => $chapitre['nombre_mots'] ?? 0,
+                'mots' => $chapitre['nombreMots'] ?? 0,
                 'type' => 'chapitre_created',
             ];
             
@@ -499,7 +543,7 @@ class AnalyticsController extends AbstractController
                 $timeline[] = [
                     'date' => $chapitre['date_modification'],
                     'titre' => $chapitre['titre'] . ' (modifié)',
-                    'mots' => $chapitre['nombre_mots'] ?? 0,
+                    'mots' => $chapitre['nombreMots'] ?? 0,
                     'type' => 'chapitre_modified',
                 ];
             }
@@ -580,5 +624,68 @@ class AnalyticsController extends AbstractController
         $response->headers->set('Content-Disposition', 'attachment; filename="productivity-data.json"');
         
         return $response;
+    }
+
+    private function calculateTrends(array $chapitres, array $personnages): array
+    {
+        $now = new \DateTime();
+        $oneWeekAgo = clone $now;
+        $oneWeekAgo->sub(new \DateInterval('P7D'));
+        $twoWeeksAgo = clone $now;
+        $twoWeeksAgo->sub(new \DateInterval('P14D'));
+        $oneMonthAgo = clone $now;
+        $oneMonthAgo->sub(new \DateInterval('P30D'));
+
+        // Calculer les mots de cette semaine vs semaine précédente
+        $thisWeekWords = 0;
+        $lastWeekWords = 0;
+        $thisMonthChapters = 0;
+        $recentPersonnages = 0;
+
+        foreach ($chapitres as $chapitre) {
+            $dateModification = $chapitre['dateModification'] ?? $chapitre['dateCreation'] ?? null;
+            if ($dateModification) {
+                $date = new \DateTime($dateModification);
+                
+                // Mots cette semaine
+                if ($date >= $oneWeekAgo) {
+                    $thisWeekWords += $chapitre['nombreMots'] ?? 0;
+                }
+                // Mots semaine précédente
+                elseif ($date >= $twoWeeksAgo) {
+                    $lastWeekWords += $chapitre['nombreMots'] ?? 0;
+                }
+                
+                // Chapitres ce mois
+                if ($date >= $oneMonthAgo) {
+                    $thisMonthChapters++;
+                }
+            }
+        }
+
+        // Compter les personnages récents
+        foreach ($personnages as $personnage) {
+            $dateCreation = $personnage['dateCreation'] ?? null;
+            if ($dateCreation) {
+                $date = new \DateTime($dateCreation);
+                if ($date >= $oneMonthAgo) {
+                    $recentPersonnages++;
+                }
+            }
+        }
+
+        // Calculer les pourcentages de changement
+        $wordsTrend = 0;
+        if ($lastWeekWords > 0) {
+            $wordsTrend = round((($thisWeekWords - $lastWeekWords) / $lastWeekWords) * 100, 1);
+        }
+
+        return [
+            'words_trend' => $wordsTrend,
+            'this_week_words' => $thisWeekWords,
+            'last_week_words' => $lastWeekWords,
+            'this_month_chapters' => $thisMonthChapters,
+            'recent_personnages' => $recentPersonnages,
+        ];
     }
 } 

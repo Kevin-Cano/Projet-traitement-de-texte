@@ -85,8 +85,9 @@
         }
         
         .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-stable { color: #6c757d; }
+        .trend-down { color: #28a745; }
+        .trend-stable { color: #28a745; }
+        .trend-info { color: #28a745; }
     </style>
 {% endblock %}
 
@@ -160,36 +161,67 @@
             <div class="stats-card">
                 <div class="stats-number" id="totalWords">{{ stats.total_words|number_format }}</div>
                 <div class="stats-label">Mots écrits</div>
-                <div class="metric-trend trend-up">
-                    <i class="bi bi-arrow-up"></i> +12% cette semaine
+                {% if stats.words_trend != 0 or stats.this_week_words > 0 %}
+                <div class="metric-trend trend-up" id="wordsTrend">
+                    <i class="bi bi-arrow-up"></i> 
+                    <span id="wordsTrendText">
+                        {% if stats.words_trend != 0 %}
+                            {{ stats.words_trend > 0 ? '+' : '' }}{{ stats.words_trend }}% cette semaine
+                        {% else %}
+                            {{ stats.this_week_words }} mots cette semaine
+                        {% endif %}
+                    </span>
                 </div>
+                {% else %}
+                <div class="metric-trend" style="visibility: hidden;">
+                    <span>&nbsp;</span>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="stats-card">
                 <div class="stats-number">{{ stats.total_chapters }}</div>
                 <div class="stats-label">Chapitres</div>
-                <div class="metric-trend trend-up">
-                    <i class="bi bi-arrow-up"></i> +2 ce mois
+                {% if stats.this_month_chapters > 0 %}
+                <div class="metric-trend trend-up" id="chaptersTrend">
+                    <i class="bi bi-arrow-up"></i> <span id="chaptersTrendText">{{ stats.this_month_chapters }} ce mois</span>
                 </div>
+                {% else %}
+                <div class="metric-trend" style="visibility: hidden;">
+                    <span>&nbsp;</span>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="stats-card">
                 <div class="stats-number">{{ stats.reading_time_hours }}h</div>
                 <div class="stats-label">Temps de lecture</div>
-                <div class="metric-trend trend-stable">
-                    <i class="bi bi-dash"></i> Stable
+                {% if stats.reading_time_hours > 0 %}
+                <div class="metric-trend trend-up">
+                    <i class="bi bi-arrow-up"></i> {{ (stats.reading_time_minutes / 60)|round(1) }}h de lecture
                 </div>
+                {% else %}
+                <div class="metric-trend" style="visibility: hidden;">
+                    <span>&nbsp;</span>
+                </div>
+                {% endif %}
             </div>
         </div>
         <div class="col-lg-3 col-md-6">
             <div class="stats-card">
                 <div class="stats-number">{{ stats.total_characters }}</div>
                 <div class="stats-label">Personnages</div>
+                {% if stats.recent_personnages > 0 %}
                 <div class="metric-trend trend-up">
-                    <i class="bi bi-arrow-up"></i> +1 récemment
+                    <i class="bi bi-arrow-up"></i> {{ stats.recent_personnages }} récemment
                 </div>
+                {% else %}
+                <div class="metric-trend" style="visibility: hidden;">
+                    <span>&nbsp;</span>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -275,31 +307,39 @@
                 </h5>
                 <div class="list-group list-group-flush">
                     <div class="list-group-item d-flex align-items-start">
-                        <div class="badge bg-primary rounded-pill me-3">💡</div>
+                        <div class="badge bg-primary rounded-pill me-3">📊</div>
                         <div>
-                            <strong>Meilleur moment d'écriture</strong><br>
-                            <small class="text-muted">Vous êtes plus productif entre 9h et 11h</small>
+                            <strong>Statistiques réelles</strong><br>
+                            <small class="text-muted">{{ stats.total_words }} mots écrits au total</small>
                         </div>
                     </div>
                     <div class="list-group-item d-flex align-items-start">
                         <div class="badge bg-success rounded-pill me-3">📈</div>
                         <div>
-                            <strong>Progression constante</strong><br>
-                            <small class="text-muted">+15% de mots cette semaine vs. précédente</small>
+                            <strong>Progression cette semaine</strong><br>
+                            <small class="text-muted">
+                                {% if stats.words_trend > 0 %}
+                                    +{{ stats.words_trend }}% par rapport à la semaine précédente
+                                {% elseif stats.words_trend < 0 %}
+                                    {{ stats.words_trend }}% par rapport à la semaine précédente
+                                {% else %}
+                                    {{ stats.this_week_words }} mots écrits cette semaine
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                     <div class="list-group-item d-flex align-items-start">
-                        <div class="badge bg-warning rounded-pill me-3">⚡</div>
+                        <div class="badge bg-info rounded-pill me-3">📚</div>
                         <div>
-                            <strong>Objectif proche</strong><br>
-                            <small class="text-muted">Plus que 2,500 mots pour votre objectif mensuel</small>
+                            <strong>Moyenne par chapitre</strong><br>
+                            <small class="text-muted">{{ stats.avg_words_per_chapter }} mots en moyenne</small>
                         </div>
                     </div>
                     <div class="list-group-item d-flex align-items-start">
-                        <div class="badge bg-info rounded-pill me-3">🎯</div>
+                        <div class="badge bg-warning rounded-pill me-3">⏱️</div>
                         <div>
-                            <strong>Recommandation</strong><br>
-                            <small class="text-muted">Essayez d'écrire 350 mots/jour pour rester sur la bonne voie</small>
+                            <strong>Temps de lecture estimé</strong><br>
+                            <small class="text-muted">{{ stats.reading_time_hours }}h de lecture pour vos lecteurs</small>
                         </div>
                     </div>
                 </div>
@@ -562,6 +602,49 @@
         function updateStats(progressionData, productivityData) {
             const totalWords = progressionData.reduce((sum, d) => sum + d.words, 0);
             document.getElementById('totalWords').textContent = totalWords.toLocaleString();
+            
+            // Calculer les tendances
+            calculateTrends(progressionData, productivityData);
+        }
+        
+        function calculateTrends(progressionData, productivityData) {
+            if (progressionData.length < 7) return;
+            
+            // Calculer la tendance des mots (7 derniers jours vs 7 jours précédents)
+            const lastWeekWords = progressionData.slice(-7).reduce((sum, d) => sum + d.words, 0);
+            const previousWeekWords = progressionData.slice(-14, -7).reduce((sum, d) => sum + d.words, 0);
+            
+            const wordsTrendElement = document.getElementById('wordsTrend');
+            const wordsTrendText = document.getElementById('wordsTrendText');
+            
+            // Masquer si aucun mot cette semaine et aucune tendance
+            if (lastWeekWords === 0 && previousWeekWords === 0) {
+                if (wordsTrendElement) wordsTrendElement.style.visibility = 'hidden';
+                return;
+            }
+            
+            if (wordsTrendElement) {
+                wordsTrendElement.style.visibility = 'visible';
+                
+                if (previousWeekWords > 0) {
+                    const percentChange = ((lastWeekWords - previousWeekWords) / previousWeekWords * 100).toFixed(1);
+                    const icon = wordsTrendElement.querySelector('i');
+                    
+                    // Toujours garder la couleur verte et l'icône flèche vers le haut
+                    icon.className = 'bi bi-arrow-up';
+                    wordsTrendElement.className = 'metric-trend trend-up';
+                    
+                    if (percentChange > 0) {
+                        wordsTrendText.textContent = `+${percentChange}% cette semaine`;
+                    } else if (percentChange < 0) {
+                        wordsTrendText.textContent = `${percentChange}% cette semaine`;
+                    } else {
+                        wordsTrendText.textContent = 'Stable cette semaine';
+                    }
+                } else {
+                    wordsTrendText.textContent = `${lastWeekWords} mots cette semaine`;
+                }
+            }
         }
         
         function toggleChartType() {

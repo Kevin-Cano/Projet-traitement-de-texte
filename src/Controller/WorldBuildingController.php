@@ -31,16 +31,12 @@ class WorldBuildingController extends AbstractController
         $termes = $this->jsonRepo->findAllByType('terme_lexique') ?? [];
         $personnages = $this->jsonRepo->findAllByType('personnage') ?? [];
 
-        // Analyse des relations pour les statistiques
-        $relations = $this->analyzeRelations($lieux, $evenements, $personnages);
-
         // Statistiques du world building
         $stats = [
             'total_locations' => count($lieux),
             'total_events' => count($evenements),
             'total_books' => count($livres),
             'total_terms' => count($termes),
-            'total_relations' => count($relations),
             'avg_locations_per_book' => count($livres) > 0 ? round(count($lieux) / count($livres), 1) : 0
         ];
 
@@ -711,192 +707,7 @@ class WorldBuildingController extends AbstractController
         return 'Âge Moderne';
     }
 
-    #[Route('/relations/{bookId}', name: 'app_world_building_relations', defaults: ['bookId' => null])]
-    public function relations(?int $bookId = null): Response
-    {
-        $livres = $this->jsonRepo->findAllByType('livre');
-        $lieux = $this->jsonRepo->findAllByType('lieu') ?? [];
-        $evenements = $this->jsonRepo->findAllByType('evenement') ?? [];
-        $personnages = $this->jsonRepo->findAllByType('personnage') ?? [];
-        
-        if ($bookId) {
-            $lieux = array_filter($lieux, fn($lieu) => ($lieu['livre_id'] ?? 0) == $bookId);
-            $evenements = array_filter($evenements, fn($event) => ($event['livre_id'] ?? 0) == $bookId);
-            $personnages = array_filter($personnages, fn($perso) => ($perso['livre_id'] ?? 0) == $bookId);
-            $livre = $this->jsonRepo->findById('livre', $bookId);
-        } else {
-            $livre = null;
-        }
 
-        // Analyse des relations
-        $relations = $this->analyzeRelations($lieux, $evenements, $personnages);
-        
-        // Préparation des données pour le graphique
-        $graphData = $this->prepareGraphData($lieux, $evenements, $personnages, $relations);
-        
-        // Statistiques des relations
-        $stats = [
-            'total_relations' => count($relations),
-            'lieux_connectes' => $this->countConnectedEntities($lieux, $relations, 'lieu'),
-            'personnages_actifs' => $this->countConnectedEntities($personnages, $relations, 'personnage'),
-            'evenements_lies' => $this->countConnectedEntities($evenements, $relations, 'evenement'),
-            'centralite_max' => $this->calculateMaxCentrality($relations)
-        ];
-
-        return $this->render('world_building/relations.html.twig', [
-            'livres' => $livres,
-            'livre_actuel' => $livre,
-            'lieux' => $lieux,
-            'evenements' => $evenements,
-            'personnages' => $personnages,
-            'relations' => $relations,
-            'graph_data' => $graphData,
-            'stats' => $stats
-        ]);
-    }
-
-    private function analyzeRelations(array $lieux, array $evenements, array $personnages): array
-    {
-        $relations = [];
-        
-        // Relations Événement -> Lieu
-        foreach ($evenements as $event) {
-            if (!empty($event['lieu_id'])) {
-                $lieu = $this->findEntityById($lieux, $event['lieu_id']);
-                if ($lieu) {
-                    $relations[] = [
-                        'from' => ['type' => 'evenement', 'id' => $event['id'], 'name' => $event['nom']],
-                        'to' => ['type' => 'lieu', 'id' => $lieu['id'], 'name' => $lieu['nom']],
-                        'type' => 'se_deroule_a',
-                        'strength' => 1.0
-                    ];
-                }
-            }
-            
-            // Relations Événement -> Personnages (protagonistes)
-            if (!empty($event['protagonistes']) && is_array($event['protagonistes'])) {
-                foreach ($event['protagonistes'] as $persoId) {
-                    $personnage = $this->findEntityById($personnages, $persoId);
-                    if ($personnage) {
-                        $relations[] = [
-                            'from' => ['type' => 'evenement', 'id' => $event['id'], 'name' => $event['nom']],
-                            'to' => ['type' => 'personnage', 'id' => $personnage['id'], 'name' => $personnage['nom']],
-                            'type' => 'implique',
-                            'strength' => 0.8
-                        ];
-                    }
-                }
-            }
-        }
-        
-        // Relations Lieu -> Lieu (hiérarchie)
-        foreach ($lieux as $lieu) {
-            if (!empty($lieu['lieu_parent_id'])) {
-                $parent = $this->findEntityById($lieux, $lieu['lieu_parent_id']);
-                if ($parent) {
-                    $relations[] = [
-                        'from' => ['type' => 'lieu', 'id' => $lieu['id'], 'name' => $lieu['nom']],
-                        'to' => ['type' => 'lieu', 'id' => $parent['id'], 'name' => $parent['nom']],
-                        'type' => 'situe_dans',
-                        'strength' => 0.9
-                    ];
-                }
-            }
-        }
-        
-        // Relations Personnage -> Lieu (origine)
-        foreach ($personnages as $personnage) {
-            if (!empty($personnage['origine']) && is_numeric($personnage['origine'])) {
-                $lieu = $this->findEntityById($lieux, (int)$personnage['origine']);
-                if ($lieu) {
-                    $relations[] = [
-                        'from' => ['type' => 'personnage', 'id' => $personnage['id'], 'name' => $personnage['nom']],
-                        'to' => ['type' => 'lieu', 'id' => $lieu['id'], 'name' => $lieu['nom']],
-                        'type' => 'originaire_de',
-                        'strength' => 0.7
-                    ];
-                }
-            }
-        }
-        
-        return $relations;
-    }
-    
-    private function prepareGraphData(array $lieux, array $evenements, array $personnages, array $relations): array
-    {
-        $nodes = [];
-        $edges = [];
-        
-        // Ajouter les nœuds - Lieux
-        foreach ($lieux as $lieu) {
-            $nodes[] = [
-                'id' => 'lieu_' . $lieu['id'],
-                'label' => $lieu['nom'],
-                'type' => 'lieu',
-                'group' => 'lieux',
-                'color' => '#10b981', // Vert
-                'size' => 20,
-                'info' => [
-                    'type' => 'Lieu',
-                    'description' => $lieu['description'] ?? '',
-                    'population' => $lieu['population'] ?? null
-                ]
-            ];
-        }
-        
-        // Ajouter les nœuds - Événements
-        foreach ($evenements as $event) {
-            $nodes[] = [
-                'id' => 'evenement_' . $event['id'],
-                'label' => $event['nom'],
-                'type' => 'evenement',
-                'group' => 'evenements',
-                'color' => '#f59e0b', // Orange
-                'size' => 15,
-                'info' => [
-                    'type' => 'Événement',
-                    'date' => $event['date'] ?? '',
-                    'importance' => $event['importance'] ?? 'Normale'
-                ]
-            ];
-        }
-        
-        // Ajouter les nœuds - Personnages
-        foreach ($personnages as $personnage) {
-            $nodes[] = [
-                'id' => 'personnage_' . $personnage['id'],
-                'label' => $personnage['nom'],
-                'type' => 'personnage',
-                'group' => 'personnages',
-                'color' => '#8b5cf6', // Violet
-                'size' => 18,
-                'info' => [
-                    'type' => 'Personnage',
-                    'age' => $personnage['age'] ?? '',
-                    'role' => $personnage['role'] ?? ''
-                ]
-            ];
-        }
-        
-        // Ajouter les arêtes
-        foreach ($relations as $relation) {
-            $edges[] = [
-                'from' => $relation['from']['type'] . '_' . $relation['from']['id'],
-                'to' => $relation['to']['type'] . '_' . $relation['to']['id'],
-                'label' => $this->getRelationLabel($relation['type']),
-                'type' => $relation['type'],
-                'strength' => $relation['strength'],
-                'width' => max(1, $relation['strength'] * 3),
-                'color' => $this->getRelationColor($relation['type'])
-            ];
-        }
-        
-        return [
-            'nodes' => $nodes,
-            'edges' => $edges
-        ];
-    }
-    
     private function findEntityById(array $entities, int $id): ?array
     {
         foreach ($entities as $entity) {
@@ -905,54 +716,5 @@ class WorldBuildingController extends AbstractController
             }
         }
         return null;
-    }
-    
-    private function countConnectedEntities(array $entities, array $relations, string $type): int
-    {
-        $connected = [];
-        foreach ($relations as $relation) {
-            if ($relation['from']['type'] === $type) {
-                $connected[$relation['from']['id']] = true;
-            }
-            if ($relation['to']['type'] === $type) {
-                $connected[$relation['to']['id']] = true;
-            }
-        }
-        return count($connected);
-    }
-    
-    private function calculateMaxCentrality(array $relations): int
-    {
-        $centrality = [];
-        foreach ($relations as $relation) {
-            $fromKey = $relation['from']['type'] . '_' . $relation['from']['id'];
-            $toKey = $relation['to']['type'] . '_' . $relation['to']['id'];
-            
-            $centrality[$fromKey] = ($centrality[$fromKey] ?? 0) + 1;
-            $centrality[$toKey] = ($centrality[$toKey] ?? 0) + 1;
-        }
-        return empty($centrality) ? 0 : max($centrality);
-    }
-    
-    private function getRelationLabel(string $type): string
-    {
-        return match($type) {
-            'se_deroule_a' => 'se déroule à',
-            'implique' => 'implique',
-            'situe_dans' => 'situé dans',
-            'originaire_de' => 'originaire de',
-            default => $type
-        };
-    }
-    
-    private function getRelationColor(string $type): string
-    {
-        return match($type) {
-            'se_deroule_a' => '#3b82f6',    // Bleu
-            'implique' => '#ef4444',        // Rouge
-            'situe_dans' => '#10b981',      // Vert
-            'originaire_de' => '#8b5cf6',   // Violet
-            default => '#6b7280'            // Gris
-        };
     }
 } 

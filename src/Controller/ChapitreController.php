@@ -175,10 +175,18 @@ class ChapitreController extends AbstractController
         }
 
         $contenu = $request->request->get('contenu', '');
+        $ancienNombreMots = $chapitre['nombreMots'] ?? 0;
+        $nouveauNombreMots = $this->countWords($contenu);
+        
         $chapitre['contenu'] = $contenu;
-        $chapitre['nombreMots'] = $this->countWords($contenu);
+        $chapitre['nombreMots'] = $nouveauNombreMots;
 
         $this->repository->save('chapitre', $chapitre);
+
+        // Enregistrer une session d'écriture si des mots ont été ajoutés
+        if ($nouveauNombreMots > $ancienNombreMots) {
+            $this->saveWritingSession($id, $ancienNombreMots, $nouveauNombreMots);
+        }
 
         return new JsonResponse([
             'success' => true,
@@ -208,5 +216,47 @@ class ChapitreController extends AbstractController
         $text = strip_tags($text);
         $words = preg_split('/\s+/', trim($text), -1, PREG_SPLIT_NO_EMPTY);
         return count($words);
+    }
+
+    private function saveWritingSession(int $chapitreId, int $ancienNombreMots, int $nouveauNombreMots): void
+    {
+        $sessions = $this->repository->findAll('writing_session');
+        
+        // Chercher une session active récente (moins de 30 minutes)
+        $sessionActive = null;
+        $maintenant = new \DateTime();
+        
+        foreach ($sessions as $session) {
+            if (($session['chapitre_id'] ?? 0) == $chapitreId) {
+                $dateModification = new \DateTime($session['dateModification'] ?? $session['dateCreation']);
+                $diffMinutes = $maintenant->diff($dateModification)->i + ($maintenant->diff($dateModification)->h * 60);
+                
+                if ($diffMinutes <= 30) { // Session active si modifiée dans les 30 dernières minutes
+                    $sessionActive = $session;
+                    break;
+                }
+            }
+        }
+        
+        if ($sessionActive) {
+            // Mettre à jour la session existante
+            $sessionActive['final_word_count'] = $nouveauNombreMots;
+            $sessionActive['words_added'] = $nouveauNombreMots - $sessionActive['initial_word_count'];
+            $sessionActive['dateModification'] = $maintenant->format('Y-m-d H:i:s');
+            
+            $this->repository->save('writing_session', $sessionActive);
+        } else {
+            // Créer une nouvelle session
+            $nouvelleSession = [
+                'chapitre_id' => $chapitreId,
+                'initial_word_count' => $ancienNombreMots,
+                'final_word_count' => $nouveauNombreMots,
+                'words_added' => $nouveauNombreMots - $ancienNombreMots,
+                'start_time' => $maintenant->format('Y-m-d H:i:s'),
+                'dateCreation' => $maintenant->format('Y-m-d H:i:s')
+            ];
+            
+            $this->repository->save('writing_session', $nouvelleSession);
+        }
     }
 } 
